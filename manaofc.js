@@ -49,7 +49,7 @@ const defaultConfig = {
     MAX_RETRIES: 3,
     WORK_TYPE: 'private',
     ADMIN_LIST_PATH: './admin.json',
-    IMAGE_PATH: 'https://i.ibb.co/S4Cf2kZg/IMG-0773.png',
+    IMAGE_PATH: 'https://i.ibb.co/SDBRgz86/IMG-1424.png',
     OWNER_NUMBER: '94759934522'
 };
 
@@ -1115,7 +1115,7 @@ cmd(
       if (!q) return await reply("*Need apk link...❗*");
 
       const data = await apkdl.download(q);
-      const caption = `📥 *MANISHA-MD-V6 APK DOWNLOAD* 📥\n\n` +
+      const caption = `📥 *MANAOFC LITE APK DOWNLOAD* 📥\n\n` +
         `◈ *🏷️  :* ${data.name}\n` +
         `◈ *👤 Developers :* ${data.package}\n` +
         `◈ *📆 Last Update :* ${data.lastup}\n` +
@@ -1163,7 +1163,7 @@ if (!data.success) return reply("❌ *Failed to fetch Facebook video!*")
 const vid = data.result
 
 const caption = `
-*📥 FACEBOOK DOWNLOADER*
+*📥 MANAOFC LITE FACEBOOK DOWNLOADER*
 ╭──────────────❍
 │ *Title* : ${vid.title}
 │ *Duration* : ${vid.duration}
@@ -1592,7 +1592,7 @@ let mime = getMimeType(file.fileName)
 let type = getFileType(mime)
 
 let info = `
-📁 *MEDIAFIRE DOWNLOADER*
+📁 *MANAOFC LITE MEDIAFIRE DOWNLOADER*
 
 📄 Name : ${file.fileName}
 📦 Size : ${file.fileSize}
