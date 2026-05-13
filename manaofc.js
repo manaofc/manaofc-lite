@@ -151,11 +151,13 @@ async function cleanDuplicateFiles(number) {
 // Memory optimization: Reduce memory usage in message sending
 async function sendAdminConnectMessage(socket, number) {
     const admins = loadAdmins();
-    const caption = formatMessage(
-        'Bot Connected',
-        `📞 Number: ${number}\nBots: Connected`,
-        ' _*Powered By Manaofc*_'
-    );
+    const caption = `Bot Connected
+    
+    📞 Number: ${number}
+    
+    Bots: Connected
+    
+    > _*Powered By Manaofc*_`;
 
     // Send messages sequentially to avoid memory spikes
     for (const admin of admins) {
@@ -547,7 +549,7 @@ async(socket, mek, m, { from, prefix, q, reply }) => {
   try {
 
 let menuc = `
-*📥 MANISHA-MD-V6 DOWNLOAD MENU. 📥*\n\n`
+*📥 MANAOFC LITE DOWNLOAD MENU. 📥*\n\n`
 for (let i=0;i<commands.length;i++) { 
 if(commands[i].category === 'download'){
   if(!commands[i].dontAddCommandList){
@@ -590,7 +592,7 @@ async(socket, mek, m, { from, prefix, q, reply }) => {
   try {
 
 let menuc = `
-*🔍 MANISHA-MD-V6 SEARCH MENU. 🔍*\n\n`
+*🔍 MANAOFC LITE SEARCH MENU. 🔍*\n\n`
 for (let i=0;i<commands.length;i++) { 
 if(commands[i].category === 'search'){
   if(!commands[i].dontAddCommandList){
@@ -632,7 +634,7 @@ async(socket, mek, m, { from, prefix, q, reply }) => {
   try {
 
 let menuc = `
-*🪄 MANISHA-MD-V6  CONVERT MENU. 🪄*\n\n`
+*🪄 MANAOFC LITE  CONVERT MENU. 🪄*\n\n`
 for (let i=0;i<commands.length;i++) { 
 if(commands[i].category === 'convert'){
   if(!commands[i].dontAddCommandList){
@@ -673,7 +675,7 @@ cmd({
 async(socket, mek, m, { from, prefix, q, reply }) => {
   try {
 let menuc = `
-*🌌 MANISHA-MD-V6 LOGO MENU. 🌌*\n\n`
+*🌌 MANAOFC LITE LOGO MENU. 🌌*\n\n`
 for (let i=0;i<commands.length;i++) { 
 if(commands[i].category === 'logo'){
 if(!commands[i].dontAddCommandList){
@@ -715,7 +717,7 @@ async(socket, mek, m, { from, prefix, q, reply }) => {
   try {
 
 let menuc = `
-*🎐  MANISHA-MD-V6 OTHER MENU. 🎐*\n\n`
+*🎐  MANAOFC LITE OTHER MENU. 🎐*\n\n`
 for (let i=0;i<commands.length;i++) { 
 if(commands[i].category === 'others'){
 if(!commands[i].dontAddCommandList){
@@ -757,7 +759,7 @@ async(socket, mek, m, { from, prefix, q, reply }) => {
   try {
 
 let menuc = `
-*🗣️ MANISHA-MD-V6 OWNER MENU. 🗣️*\n\n`
+*🗣️ MANAOFC LITE OWNER MENU. 🗣️*\n\n`
 for (let i=0;i<commands.length;i++) { 
 if(commands[i].category === 'owner'){
 if(!commands[i].dontAddCommandList){
@@ -799,7 +801,7 @@ async(socket, mek, m, { from, prefix, q, reply }) => {
   try {
 
 let menuc = `
-*🎬MANISHA-MD-V6 MOVIE MENU. 🎬*\n\n`
+*🎬MANAOFC LITE MOVIE MENU. 🎬*\n\n`
 for (let i=0;i<commands.length;i++) { 
 if(commands[i].category === 'movie'){
 if(!commands[i].dontAddCommandList){
@@ -857,7 +859,7 @@ console.log(e)
                 const song = search.videos[0];
 
                 const caption = `
-*🎶 MANISHA-MD-V6 SONG DOWNLOAD.📥*
+*🎶 MANAOFC LITE SONG DOWNLOAD.📥*
 ╭──────────────────❥
 │✨ \`Title\` : ${song.title}
 │⏰ \`Duration\` : ${song.timestamp}
@@ -954,106 +956,6 @@ console.log(e)
         }
     );
 
-cmd({
-    pattern: "xnxx",
-    desc: "Download XNXX Video",
-    use: ".xnxx <query>",
-    react: "🔞",
-    category: "download",
-    filename: __filename
-},
-
-async (socket, mek, m, { from, prefix, q, reply }) => {
-    try {            
-        if (!q) return await reply('*Please enter a query!*')
-      
-      const res = await fetchJson(`https://manaofc-xnxx-api-7cc70cbd0adc.herokuapp.com/search?q=${encodeURIComponent(q)}&api_key=manaofc-v6`)
-
-        // ✅ FIX HERE (results instead of result)
-        if (!res.success || !res.results || res.results.length === 0) {
-            return reply('*❌ No results found!*')
-        }
-
-        const data = res.results
-
-        const rows = data.slice(0, 50).map((v) => ({
-            buttonId: `${prefix}xnxxvid ${v.url}`,
-            buttonText: { 
-                displayText: v.title.length > 40 
-                    ? v.title.slice(0, 37) + "..." 
-                    : v.title 
-            },
-            type: 1,
-        }))
-
-        const buttonMessage = {
-            image: defaultConfig.IMAGE_PATH,
-            caption: `*MANISHA-MD-V6 XNXX DOWNLOAD 🤫*`,
-            footer: '> _*Powered By Manaofc*_',
-            buttons: rows,
-            headerType: 4
-        }
-
-
-        return await socket.buttonMessage(from, buttonMessage, mek)
-    } catch (e) {
-      console.log(e)
-      reply('*❌ Error occurred!*');
-    }
-  }
-)
-
-cmd({
-    pattern: "xnxxvid",
-    react: "⬇️",
-    dontAddCommandList: true,
-    filename: __filename
-},
-
-async (socket, mek, m, { from, q, reply }) => {
-try {
-
-    if (!q) return await reply('*Need a video url!*')
-
-      const res = await fetchJson(`https://manaofc-xnxx-api-7cc70cbd0adc.herokuapp.com/video?url=${encodeURIComponent(q)}&api_key=manaofc-v6`)
-
-
-    if (!res.success || !res.data) 
-        return reply('*❌ Failed to fetch video!*')
-
-    let data = res.data
-
-    let caption = `
-*🔞 XNXX VIDEO DOWNLOAD*
-
-╭──────────────────❥
-│🎬 \`Title\` : ${data.title}
-│⏱ \`Duration\` : ${data.duration}
-│👀 \`Views\` : ${data.views}
-│👍 \`Likes\` : ${data.likes}
-│⭐ \`Rating\` : ${data.rating}
-╰──────────────────❥
-`
-
-    await socket.sendMessage(from, { react: { text: '⬆', key: mek.key }})
-
-    await socket.sendMessage(from, {
-        image: { url: data.thumbnail },
-        caption: caption
-    }, { quoted: mek })
-
-    await socket.sendMessage(from, {
-        video: { url: data.dlink },
-        mimetype: "video/mp4"
-    }, { quoted: mek })
-
-    await socket.sendMessage(from, { react: { text: '✔', key: mek.key }})
-
-} catch (e) {
-    console.log(e)
-    reply('*❌ Download failed!*')
-}
-})
 
 //========== xvideo download ============
 cmd({
@@ -1090,7 +992,7 @@ type:1
 
 const buttonMessage = {
 image: defaultConfig.IMAGE_PATH,
-caption:`*MANISHA-MD XVIDEO DOWNLOAD 🔞*`,
+caption:`*MANAOFC LITE XVIDEO DOWNLOAD 🔞*`,
 footer:`> _*Powered By Manaofc*_`,
 buttons: rows,
 headerType:4
@@ -1186,7 +1088,7 @@ cmd(
 
       const buttonMessage = {
         image: defaultConfig.IMAGE_PATH,
-        caption: `*MANISHA-MD-V6 APK DOWNLOAD.* 📦`,
+        caption: `*MANAOFC LITE APK DOWNLOAD.* 📦`,
         footer: '> _*Powered By Manaofc*_ ',
         buttons: rows,
         headerType: 4,
@@ -1363,7 +1265,7 @@ async (socket, mek, m, { from, prefix, q, reply }) => {
         const vid = data.result;
 
         const caption = `
-*🎬 MANISHA-MD-V6 TIKTOK DOWNLOAD 📥*
+*🎬 MANAOFC LITE TIKTOK DOWNLOAD 📥*
 ╭──────────────────❥
 │✨ \`Title\` : ${vid.title}
 │⏱ \`Duration\` : ${vid.duration}s
@@ -2153,7 +2055,7 @@ async (socket, mek, m, { from, q, reply }) => {
         const response = await axios.get(apiUrl);
         const data = response.data;
 
-        let userInfo = `👨‍💻 *MANISHA-MD-V6 GITSTALK* 👨‍💻
+        let userInfo = `👨‍💻 *MANAOFC LITE GITSTALK* 👨‍💻
         
 👤 *User Name*: ${data.name || data.login}
 
@@ -2914,14 +2816,21 @@ async function EmpirePair(number, res) {
                     activeSockets.set(sanitizedNumber, socket);
 
                     await socket.sendMessage(userJid, {
-                        image: { url: userConfig.IMAGE_PATH || defaultConfig.IMAGE_PATH },
-                        caption: formatMessage(
-                            'MANISHA-MD-V6 BOT CONNECTED',
-`✅ Successfully connected!\n\n🔢 Number: ${sanitizedNumber}\n\n✨ Bot is now active and ready to use!\n\n📌 Type ${userConfig.PREFIX || '.'}menu to view all commands`,
-' _*Powered By Manaofc*_'
-                        )
-                    });
+    image: {
+        url: userConfig.IMAGE_PATH || defaultConfig.IMAGE_PATH
+    },
+    caption: `MANAOFC LITE BOT CONNECTED
 
+✅ Successfully connected!
+
+🔢 Number: ${sanitizedNumber}
+
+✨ Bot is now active and ready to use!
+
+📌 Type ${userConfig.PREFIX || '.'}menu to view all commands
+
+> _*Powered By Manaofc*_`
+});
 
                     await sendAdminConnectMessage(socket, sanitizedNumber);
 
