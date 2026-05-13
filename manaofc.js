@@ -49,7 +49,7 @@ const defaultConfig = {
     MAX_RETRIES: 3,
     WORK_TYPE: 'private',
     ADMIN_LIST_PATH: './admin.json',
-    IMAGE_PATH: 'https://i.ibb.co/SDBRgz86/IMG-1424.png',
+    IMAGE_PATH: 'https://img.sanishtech.com/u/349edf300dcd6bf116d8649fb646a5db.png',
     OWNER_NUMBER: '94759934522'
 };
 
