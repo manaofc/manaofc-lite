@@ -903,7 +903,7 @@ console.log(e)
 
                 await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
 
-                const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3-v2?url=${encodeURIComponent(q)}`;
+                const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(q)}&apikey=abcab1bf06ab4a65`;
                 const res = await axios.get(apiUrl, { timeout: 30000 });
                 const data = res.data;
 
@@ -932,7 +932,7 @@ console.log(e)
 
                 await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
 
-                const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3-v2?url=${encodeURIComponent(q)}`;
+                const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(q)}&apikey=abcab1bf06ab4a65`;
                 const res = await axios.get(apiUrl, { timeout: 30000 });
                 const data = res.data;
 
