@@ -953,29 +953,30 @@ console.log(e)
             }
         }
     );
-/* ================== SONG SEARCH ================== */
+/* ================== VIDEO SEARCH ================== */
 cmd(
-    {
-        pattern: "video",
-        react: "🎬",
-        category: "download",
-        use: ".video <video Name or YouTube URL>",
-        filename: __filename,
-    },
-    async (socket, mek, m, { from, prefix, q, reply }) => {
-        try {
-            if (!q) return reply("❌ *Please provide a song name or YouTube URL!*");
+        {
+            pattern: "video",
+            react: "🎬",
+            alias: ["ytv", "mp4"],
+            category: "download",
+            use: ".video <video Name or YouTube URL>",
+            filename: __filename,
+        },
+        async (socket, mek, m, { from, prefix, q, reply }) => {
+            try {
+                if (!q) return reply("❌ *Please provide a song name or YouTube URL!*");
 
-            const search = await yts(q);
-            if (!search.videos || search.videos.length === 0)
-                return reply("⚠️ *No results found!*");
+                const search = await yts(q);
+                if (!search.videos || search.videos.length === 0)
+                    return reply("⚠️ *No song results found!*");
 
-            const video = search.videos[0];
+                const video = search.videos[0];
 
-            const caption = `
-*🎬 MANAOFC LITE VIDEO DOWNLOAD.📥*
+                const caption = `
+* 🎬 MANAOFC LITE VIDEO DOWNLOAD.📥*
 ╭──────────────────❥
-│✨ \`Title\` : ${song.title}
+│✨ \`Title\` : ${video.title}
 │⏰ \`Duration\` : ${video.timestamp}
 │👀 \`Views\` : ${video.views}
 │ 📅 \`Uploaded\` : ${video.ago}
@@ -983,12 +984,13 @@ cmd(
 ╰──────────────────❥
 > _*Powered By Manaofc*_ 
 `;
-             const buttons = [
-                    { buttonId: `${prefix}ytvideo ${video.url}`, buttonText: { displayText: "📺 VIDEO TYPE" }, type: 1 },
-                    { buttonId: `${prefix}ytdoc ${video.url}`, buttonText: { displayText: "DOCUMENT TYPE 📁" }, type: 1 },
+
+                const buttons = [
+                    { buttonId: `${prefix}videov ${video.url}`, buttonText: { displayText: "VIDEO TYPE 🎬" }, type: 1 },
+                    { buttonId: `${prefix}videod ${video.url}`, buttonText: { displayText: "DOCUMENT TYPE 📁" }, type: 1 },
                 ];
 
-              const buttonMessage = {
+                const buttonMessage = {
                     image: video.thumbnail,
                     caption: caption,
                     footer: "> _Powered By Manaofc_",
@@ -996,21 +998,19 @@ cmd(
                     headerType: 4,
                 };
 
-            await socket.buttonMessage(from, buttonMessage, mek);
-
-        } catch (e) {
-            console.log(e);
-            reply("❌ Error in search!");
+                await socket.buttonMessage(from, buttonMessage, mek);
+            } catch (e) {
+                console.log(e);
+                reply("❌ *An error occurred while searching!*");
+            }
         }
-    }
-);
-
+    );
 
 
 // ===================== VIDEO DOWNLOAD =====================
 cmd(
     {
-        pattern: "ytvideo",
+        pattern: "videov",
         react: "📥",
         category: "download",
         use: ".ytvideo <YouTube URL>",
@@ -1050,7 +1050,7 @@ cmd(
 // ===================== DOCUMENT DOWNLOAD =====================
 cmd(
     {
-        pattern: "ytdoc",
+        pattern: "videod",
         react: "📁",
         category: "download",
         use: ".ytdoc <YouTube URL>",
