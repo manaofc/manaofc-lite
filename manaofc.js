@@ -890,201 +890,143 @@ console.log(e)
     );
 
     /* ================== AUDIO DOWNLOAD ================== */
-    cmd({ 
-      pattern: "yta", 
-      react: "⬇️", 
-      dontAddCommandList: true, 
-      filename: __filename 
-    },
-        async (socket, mek, m, { from, q, reply }) => {
-            try {
-                if (!q) return reply("❌ *Need a YouTube URL!*");
-
-                await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
-
-                const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(q)}&apikey=abcab1bf06ab4a65`;
-                const res = await axios.get(apiUrl, { timeout: 30000 });
-                const data = res.data;
-
-                if (!data.status || !data.data?.download)
-                    return reply("❌ *Failed to fetch audio link!*");
-
-                await socket.sendMessage(from, { audio: { url: data.data.download }, mimetype: "audio/mpeg" }, { quoted: mek });
-                await socket.sendMessage(from, { react: { text: "✔️", key: mek.key } });
-            } catch (e) {
-                console.log(e);
-                reply("❌ *Audio download failed!*");
-            }
-        }
-    );
-
-    /* ================== DOCUMENT DOWNLOAD ================== */
-    cmd({ 
-      pattern: "ytd", 
-      react: "📁", 
-      dontAddCommandList: true, 
-      filename: __filename 
-    },
-        async (socket, mek, m, { from, q, reply }) => {
-            try {
-                if (!q) return reply("❌ *Need a YouTube URL!*");
-
-                await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
-
-                const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(q)}&apikey=abcab1bf06ab4a65`;
-                const res = await axios.get(apiUrl, { timeout: 30000 });
-                const data = res.data;
-
-                if (!data.status || !data.data?.download)
-                    return reply("❌ *Failed to fetch document link!*");
-
-                const title = data.data.title || "Manaofc-Music";
-
-                await socket.sendMessage(
-                    from,
-                    { document: { url: data.data.download }, mimetype: "audio/mpeg", fileName: `${title}.mp3` },
-                    { quoted: mek }
-                );
-
-                await socket.sendMessage(from, { react: { text: "✔️", key: mek.key } });
-            } catch (e) {
-                console.log(e);
-                reply("❌ *Document download failed!*");
-            }
-        }
-    );
-/* ================== VIDEO SEARCH ================== */
 cmd(
+  {
+    pattern: "yta",
+    react: "⬇️",
+    dontAddCommandList: true,
+    filename: __filename,
+  },
+  async (socket, mek, m, { from, q, reply }) => {
+    try {
+      if (!q) {
+        return reply("❌ *Please provide a YouTube URL!*");
+      }
+
+      // React loading
+      await socket.sendMessage(from, {
+        react: { text: "⬇️", key: mek.key },
+      });
+
+      const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(q)}&apikey=abcab1bf06ab4a65`;
+
+      const response = await axios.get(apiUrl, {
+        timeout: 30000,
+      });
+
+      const data = response.data;
+
+      // Check API response
+      if (!data?.status || !data?.data?.download) {
+        return reply("❌ *Failed to fetch audio!*");
+      }
+
+      const {
+        download,
+        thumbnail,
+      } = data.data;
+
+      // Send thumbnail + info
+      await socket.sendMessage(
+        from,
         {
-            pattern: "video",
-            react: "🎬",
-            alias: ["ytv", "mp4"],
-            category: "download",
-            use: ".video <video Name or YouTube URL>",
-            filename: __filename,
+          image: { url: thumbnail },
+          caption: `🎵 *manaofc  Audio Download`,
         },
-        async (socket, mek, m, { from, prefix, q, reply }) => {
-            try {
-                if (!q) return reply("❌ *Please provide a song name or YouTube URL!*");
+        { quoted: mek }
+      );
 
-                const search = await yts(q);
-                if (!search.videos || search.videos.length === 0)
-                    return reply("⚠️ *No song results found!*");
+      // Send audio
+      await socket.sendMessage(
+        from,
+        {
+          audio: { url: download },
+          mimetype: "audio/mpeg",
+          ptt: false,
+        },
+        { quoted: mek }
+      );
 
-                const video = search.videos[0];
+      // Success react
+      await socket.sendMessage(from, {
+        react: { text: "✔️", key: mek.key },
+      });
+    } catch (err) {
+      console.log("YTA ERROR:", err);
 
-                const caption = `
-* 🎬 MANAOFC LITE VIDEO DOWNLOAD.📥*
-╭──────────────────❥
-│✨ \`Title\` : ${video.title}
-│⏰ \`Duration\` : ${video.timestamp}
-│👀 \`Views\` : ${video.views}
-│ 📅 \`Uploaded\` : ${video.ago}
-│ 📺 \`Channel\` : ${video.author.name}
-╰──────────────────❥
-> _*Powered By Manaofc*_ 
-`;
-
-                const buttons = [
-                    { buttonId: `${prefix}videov ${video.url}`, buttonText: { displayText: "VIDEO TYPE 🎬" }, type: 1 },
-                    { buttonId: `${prefix}videod ${video.url}`, buttonText: { displayText: "DOCUMENT TYPE 📁" }, type: 1 },
-                ];
-
-                const buttonMessage = {
-                    image: video.thumbnail,
-                    caption: caption,
-                    footer: "> _Powered By Manaofc_",
-                    buttons: buttons,
-                    headerType: 4,
-                };
-
-                await socket.buttonMessage(from, buttonMessage, mek);
-            } catch (e) {
-                console.log(e);
-                reply("❌ *An error occurred while searching!*");
-            }
-        }
-    );
-
-
-// ===================== VIDEO DOWNLOAD =====================
-cmd(
-    {
-        pattern: "videov",
-        react: "📥",
-        category: "download",
-        use: ".ytvideo <YouTube URL>",
-        filename: __filename,
-    },
-    async (socket, mek, m, { from, q, reply }) => {
-        try {
-            if (!q) return reply("❌ *Send YouTube URL!*");
-
-            await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
-
-            const api = `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(q)}&quality=480&apikey=b8bac21967ae1a95`;
-
-            const res = await axios.get(api, { timeout: 30000 });
-            const data = res.data;
-
-            if (!data.status) return reply("⚠️ Download failed!");
-
-            const videoUrl = data.data.download;
-
-            await socket.sendMessage(from, {
-                video: { url: videoUrl },
-                caption: `🎬 *VIDEO READY*`,
-            }, { quoted: mek });
-
-            await socket.sendMessage(from, { react: { text: "✔️", key: mek.key } });
-
-        } catch (e) {
-            console.log(e);
-            reply("❌ Error downloading video!");
-        }
+      reply("❌ *Audio download failed!*");
     }
+  }
 );
 
-
-
-// ===================== DOCUMENT DOWNLOAD =====================
+/* ================== DOCUMENT DOWNLOAD ================== */
 cmd(
-    {
-        pattern: "videod",
-        react: "📁",
-        category: "download",
-        use: ".ytdoc <YouTube URL>",
-        filename: __filename,
-    },
-    async (socket, mek, m, { from, q, reply }) => {
-        try {
-            if (!q) return reply("❌ *Send YouTube URL!*");
+  {
+    pattern: "ytd",
+    react: "📁",
+    dontAddCommandList: true,
+    filename: __filename,
+  },
+  async (socket, mek, m, { from, q, reply }) => {
+    try {
+      if (!q) {
+        return reply("❌ *Please provide a YouTube URL!*");
+      }
 
-            await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
+      // Loading react
+      await socket.sendMessage(from, {
+        react: { text: "⬇️", key: mek.key },
+      });
 
-            const api = `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(q)}&quality=480&apikey=b8bac21967ae1a95`;
+      const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(q)}&apikey=abcab1bf06ab4a65`;
 
-            const res = await axios.get(api, { timeout: 30000 });
-            const data = res.data;
+      const response = await axios.get(apiUrl, {
+        timeout: 30000,
+      });
 
-            if (!data.status) return reply("⚠️ Download failed!");
+      const data = response.data;
 
-            const videoUrl = data.data.download;
+      // Validate response
+      if (!data?.status || !data?.data?.download) {
+        return reply("❌ *Failed to fetch document!*");
+      }
 
-            await socket.sendMessage(from, {
-                document: { url: videoUrl },
-                mimetype: "video/mp4",
-                fileName: `${data.data.title}.mp4`,
-                caption: `📁 *DOCUMENT READY*`,
-            }, { quoted: mek });
+      const {
+        download,
+        thumbnail,
+      } = data.data;
 
-           await socket.sendMessage(from, { react: { text: "✔️", key: mek.key } });
+      // Send preview image
+      await socket.sendMessage(
+        from,
+        {
+          image: { url: thumbnail },
+          caption: `📁 *manaofc  Document Download*`,
+        },
+        { quoted: mek }
+      );
 
-        } catch (e) {
-            console.log(e);
-            reply("❌ Error sending document!");
-        }
+      // Send document
+      await socket.sendMessage(
+        from,
+        {
+          document: { url: download },
+          mimetype: "audio/mpeg",
+          fileName: `${title}.mp3`,
+        },
+        { quoted: mek }
+      );
+
+      // Success react
+      await socket.sendMessage(from, {
+        react: { text: "✔️", key: mek.key },
+      });
+    } catch (err) {
+      console.log("YTD ERROR:", err);
+
+      reply("❌ *Document download failed!*");
     }
+  }
 );
 //========== xvideo download ============
 cmd({
