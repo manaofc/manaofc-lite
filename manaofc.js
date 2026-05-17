@@ -46,7 +46,7 @@ const defaultConfig = {
     AUTO_LIKE_EMOJI: ['💥', '👍', '😍', '💗', '🎈', '🎉', '🥳', '😎', '🚀', '🔥'],
     PREFIX: '.',
     MAX_RETRIES: 3,
-    WORK_TYPE: 'private',
+    MODE: 'private',
     ADMIN_LIST_PATH: './admin.json',
     IMAGE_PATH: 'https://files.catbox.moe/qlx0lp.png',
     OWNER_NUMBER: '94759934522'
