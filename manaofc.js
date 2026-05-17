@@ -2481,7 +2481,7 @@ async (socket, mek, m, { from, reply }) => {
         headerType: 4,
       };
 
-      await socket.sendMessage(from, buttonMessage, { quoted: mek });
+      await socket.buttonMessage(from, buttonMessage, mek);
     } catch (e) {
       console.error(e);
       reply("❌ ERROR!");
@@ -2536,7 +2536,7 @@ cmd(
         headerType: 4,
       };
 
-      await socket.sendMessage(from, buttonMessage, { quoted: mek });
+      await socket.buttonMessage(from, buttonMessage, mek);
     } catch (e) {
       console.error(e);
       reply("❌ ERROR!");
