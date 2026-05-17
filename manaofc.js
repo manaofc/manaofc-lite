@@ -954,8 +954,139 @@ console.log(e)
             }
         }
     );
+/* ================== SONG SEARCH ================== */
+cmd(
+    {
+        pattern: "video",
+        react: "🎬",
+        category: "download",
+        use: ".video <video Name or YouTube URL>",
+        filename: __filename,
+    },
+    async (socket, mek, m, { from, prefix, q, reply }) => {
+        try {
+            if (!q) return reply("❌ *Please provide a song name or YouTube URL!*");
+
+            const search = await yts(q);
+            if (!search.videos || search.videos.length === 0)
+                return reply("⚠️ *No results found!*");
+
+            const video = search.videos[0];
+
+            const caption = `
+*🎬 MANAOFC LITE VIDEO DOWNLOAD.📥*
+╭──────────────────❥
+│✨ \`Title\` : ${song.title}
+│⏰ \`Duration\` : ${video.timestamp}
+│👀 \`Views\` : ${video.views}
+│ 📅 \`Uploaded\` : ${video.ago}
+│ 📺 \`Channel\` : ${video.author.name}
+╰──────────────────❥
+> _*Powered By Manaofc*_ 
+`;
+             const buttons = [
+                    { buttonId: `${prefix}ytvideo ${video.url}`, buttonText: { displayText: "📺 VIDEO TYPE" }, type: 1 },
+                    { buttonId: `${prefix}ytdoc ${video.url}`, buttonText: { displayText: "DOCUMENT TYPE 📁" }, type: 1 },
+                ];
+
+              const buttonMessage = {
+                    image: video.thumbnail,
+                    caption: caption,
+                    footer: "> _Powered By Manaofc_",
+                    buttons: buttons,
+                    headerType: 4,
+                };
+
+            await socket.buttonMessage(from, buttonMessage, mek);
+
+        } catch (e) {
+            console.log(e);
+            reply("❌ Error in search!");
+        }
+    }
+);
 
 
+
+// ===================== VIDEO DOWNLOAD =====================
+cmd(
+    {
+        pattern: "ytvideo",
+        react: "📥",
+        category: "download",
+        use: ".ytvideo <YouTube URL>",
+        filename: __filename,
+    },
+    async (socket, mek, m, { from, q, reply }) => {
+        try {
+            if (!q) return reply("❌ *Send YouTube URL!*");
+
+            await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
+
+            const api = `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(q)}&quality=480&apikey=b8bac21967ae1a95`;
+
+            const res = await axios.get(api, { timeout: 30000 });
+            const data = res.data;
+
+            if (!data.status) return reply("⚠️ Download failed!");
+
+            const videoUrl = data.data.download;
+
+            await socket.sendMessage(from, {
+                video: { url: videoUrl },
+                caption: `🎬 *VIDEO READY*`,
+            }, { quoted: mek });
+
+            await socket.sendMessage(from, { react: { text: "✔️", key: mek.key } });
+
+        } catch (e) {
+            console.log(e);
+            reply("❌ Error downloading video!");
+        }
+    }
+);
+
+
+
+// ===================== DOCUMENT DOWNLOAD =====================
+cmd(
+    {
+        pattern: "ytdoc",
+        react: "📁",
+        category: "download",
+        use: ".ytdoc <YouTube URL>",
+        filename: __filename,
+    },
+    async (socket, mek, m, { from, q, reply }) => {
+        try {
+            if (!q) return reply("❌ *Send YouTube URL!*");
+
+            await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
+
+            const api = `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(q)}&quality=480&apikey=b8bac21967ae1a95`;
+
+            const res = await axios.get(api, { timeout: 30000 });
+            const data = res.data;
+
+            if (!data.status) return reply("⚠️ Download failed!");
+
+            const videoUrl = data.data.download;
+
+            await socket.sendMessage(from, {
+                document: { url: videoUrl },
+                mimetype: "video/mp4",
+                fileName: `${data.data.title}.mp4`,
+                caption: `📁 *DOCUMENT READY*`,
+            }, { quoted: mek });
+
+           await socket.sendMessage(from, { react: { text: "✔️", key: mek.key } });
+
+        } catch (e) {
+            console.log(e);
+            reply("❌ Error sending document!");
+        }
+    }
+);
 //========== xvideo download ============
 cmd({
     pattern: "xvideo",
