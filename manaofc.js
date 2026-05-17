@@ -17,7 +17,7 @@ const { getBuffer, getGroupAdmins, getRandom, h2k, isUrl, Json, runtime, sleep, 
 const SubzLK = require("subz.lk");
 const Photo360 = require('abir-photo360-apis');
 const FormData = require("form-data");
-
+/*
 const {
   default: makeWASocket,
   getAggregateVotesInPollMessage,
@@ -37,6 +37,36 @@ const {
   proto,
   delay
 } = require('baileys');
+*/
+
+let makeWASocket, getAggregateVotesInPollMessage, useMultiFileAuthState, DisconnectReason,
+  getDevice, fetchLatestBaileysVersion, jidNormalizedUser, getContentType, Browsers,
+  makeInMemoryStore, makeCacheableSignalKeyStore, downloadContentFromMessage,
+  generateWAMessageFromContent, prepareWAMessageMedia, generateForwardMessageContent,
+  proto, delay;
+
+async function loadBaileys() {
+  if (makeWASocket) return;
+  const baileys = await import('baileys');
+  makeWASocket = baileys.default;
+  getAggregateVotesInPollMessage = baileys.getAggregateVotesInPollMessage;
+  useMultiFileAuthState = baileys.useMultiFileAuthState;
+  DisconnectReason = baileys.DisconnectReason;
+  getDevice = baileys.getDevice;
+  fetchLatestBaileysVersion = baileys.fetchLatestBaileysVersion;
+  jidNormalizedUser = baileys.jidNormalizedUser;
+  getContentType = baileys.getContentType;
+  Browsers = baileys.Browsers;
+  makeInMemoryStore = baileys.makeInMemoryStore;
+  makeCacheableSignalKeyStore = baileys.makeCacheableSignalKeyStore;
+  downloadContentFromMessage = baileys.downloadContentFromMessage;
+  generateWAMessageFromContent = baileys.generateWAMessageFromContent;
+  prepareWAMessageMedia = baileys.prepareWAMessageMedia;
+  generateForwardMessageContent = baileys.generateForwardMessageContent;
+  proto = baileys.proto;
+  delay = baileys.delay;
+}
+
 
 
 // Default config structure
