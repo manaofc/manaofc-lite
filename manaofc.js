@@ -1110,9 +1110,7 @@ async function EmpirePair(number, res) {
                     
                     const userJid = jidNormalizedUser(socket.user.id);
    
-   await sock.newsletterFollow("120363348739987203@newsletter");
-                        await sock.newsletterUnmute("120363348739987203@newsletter");   
-                        await sock.newsletterFollow("120363348739987203@newsletter");
+   
                         
                                                                                             
                     await updateAboutStatus(socket);
