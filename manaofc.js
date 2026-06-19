@@ -338,6 +338,8 @@ function cmd(info, func) {
   return data;
 }
 
+//////////// COMMAND /////////////
+
 cmd(
   {
     pattern: "song",
@@ -350,19 +352,57 @@ cmd(
   async (socket, mek, m, { from, prefix, q, reply }) => {
     try {
       if (!q) return reply("❌ *Please provide a song name or YouTube URL!*");
-      const search = await ytSearch(q);
+
+      const search = await yts(q);
       if (!search.videos || search.videos.length === 0) {
         return reply("⚠️ *No song results found!*");
       }
+
       const song = search.videos[0];
-      const caption = `\n*🎶 MANISHA-MD-V6 SONG DOWNLOAD.📥*\n╭──────────────────❥\n│✨ \`Title\` : ${song.title}\n│⏰ \`Duration\` : ${song.timestamp}\n│👀 \`Views\` : ${song.views}\n│ 📅 ‍ \`Uploaded\` : ${song.ago}\n│ 📺 ‍ \`Channel\` : ${song.author.name}\n╰──────────────────❥\n\n> _*Powered By Manaofc*_ `;
-      await reply(caption + `\n\nAudio: ${prefix}yta ${song.url}\nDocument: ${prefix}ytd ${song.url}`);
+
+      const caption = `
+
+*🎶 MANISHA-MD-V6 SONG DOWNLOAD.📥*
+╭──────────────────❥
+│✨ \`Title\` : ${song.title}
+│⏰ \`Duration\` : ${song.timestamp}
+│👀 \`Views\` : ${song.views}
+│ 📅 ‍ \`Uploaded\` : ${song.ago}
+│ 📺 ‍ \`Channel\` : ${song.author.name}
+╰──────────────────❥
+
+> _*Powered By Manaofc*_ `;
+
+      const buttons = [
+        {
+          buttonId: `${prefix}yta ${song.url}`,
+          buttonText: { displayText: "AUDIO TYPE 🎙" },
+          type: 1,
+        },
+        {
+          buttonId: `${prefix}ytd ${song.url}`,
+          buttonText: { displayText: "DOCUMENT TYPE 📁" },
+          type: 1,
+        },
+      ];
+
+      const buttonMessage = {
+        image: song.thumbnail,
+        caption: caption,
+        footer: "> _Powered By Manaofc_",
+        buttons: buttons,
+        headerType: 4,
+      };
+
+      await socket.buttonMessage(from, buttonMessage, mek);
     } catch (e) {
       console.log(e);
       reply("❌ *An error occurred while searching!*");
     }
   }
 );
+
+/* ================== AUDIO DOWNLOAD ================== */
 
 cmd(
   {
@@ -371,25 +411,45 @@ cmd(
     dontAddCommandList: true,
     filename: __filename,
   },
-  async (socket, mek, m, { from, q, reply }) => {
+  async (conn, mek, m, { from, q, reply }) => {
     try {
       if (!q) return reply("❌ *Need a YouTube URL!*");
-      await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
+
+      await socket.sendMessage(from, {
+        react: { text: "⬇️", key: mek.key },
+      });
+
       const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3-v2?url=${encodeURIComponent(q)}`;
+
       const res = await axios.get(apiUrl, { timeout: 30000 });
       const data = res.data;
+
       if (!data.status || !data.data?.download) {
         return reply("❌ *Failed to fetch audio link!*");
       }
+
       const audioUrl = data.data.download;
-      await socket.sendMessage(from, { audio: { url: audioUrl }, mimetype: "audio/mpeg" }, { quoted: mek });
-      await socket.sendMessage(from, { react: { text: "✔️", key: mek.key } });
+
+      await socket.sendMessage(
+        from,
+        {
+          audio: { url: audioUrl },
+          mimetype: "audio/mpeg",
+        },
+        { quoted: mek }
+      );
+
+      await socket.sendMessage(from, {
+        react: { text: "✔️", key: mek.key },
+      });
     } catch (e) {
       console.log(e);
       reply("❌ *Audio download failed!*");
     }
   }
 );
+
+/* ================== DOCUMENT DOWNLOAD ================== */
 
 cmd(
   {
@@ -401,17 +461,36 @@ cmd(
   async (socket, mek, m, { from, q, reply }) => {
     try {
       if (!q) return reply("❌ *Need a YouTube URL!*");
-      await socket.sendMessage(from, { react: { text: "⬇️", key: mek.key } });
+
+      await socket.sendMessage(from, {
+        react: { text: "⬇️", key: mek.key },
+      });
+
       const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3-v2?url=${encodeURIComponent(q)}`;
+
       const res = await axios.get(apiUrl, { timeout: 30000 });
       const data = res.data;
+
       if (!data.status || !data.data?.download) {
         return reply("❌ *Failed to fetch document link!*");
       }
+
       const audioUrl = data.data.download;
       const title = data.data.title || "Manaofc-Music";
-      await socket.sendMessage(from, { document: { url: audioUrl }, mimetype: "audio/mpeg", fileName: `${title}.mp3` }, { quoted: mek });
-      await socket.sendMessage(from, { react: { text: "✔️", key: mek.key } });
+
+      await socket.sendMessage(
+        from,
+        {
+          document: { url: audioUrl },
+          mimetype: "audio/mpeg",
+          fileName: `${title}.mp3`,
+        },
+        { quoted: mek }
+      );
+
+      await socket.sendMessage(from, {
+        react: { text: "✔️", key: mek.key },
+      });
     } catch (e) {
       console.log(e);
       reply("❌ *Document download failed!*");
@@ -445,29 +524,39 @@ function setupCommandHandlers(socket, number, userConfig) {
         try {
             const type = getContentType(mek.message);
             const from = mek.key.remoteJid;
-            const quoted = type == "extendedTextMessage" && mek.message.extendedTextMessage.contextInfo != null
-                ? mek.message.extendedTextMessage.contextInfo.quotedMessage || []
-                : [];
-
-            let body = "";
-            if (type === "conversation") {
-                body = mek.message.conversation;
-            } else if (type === "extendedTextMessage") {
-                const stanzaId = mek.message?.extendedTextMessage?.contextInfo?.stanzaId;
-                if (stanzaId && await isbtnID(stanzaId)) {
-                    const store = await getCMDStore(stanzaId);
-                    const cmdText = mek?.message?.extendedTextMessage?.text;
-                    const resolved = getCmdForCmdId(store, cmdText);
-                    body = resolved || mek.message.extendedTextMessage.text;
-                } else {
-                    body = mek.message.extendedTextMessage.text;
-                }
-            } else if (type == "imageMessage" && mek.message.imageMessage.caption) {
-                body = mek.message.imageMessage.caption;
-            } else if (type == "videoMessage" && mek.message.videoMessage.caption) {
-                body = mek.message.videoMessage.caption;
-            }
-
+            const quoted =
+        type == "extendedTextMessage" &&
+        mek.message.extendedTextMessage.contextInfo != null
+          ? mek.message.extendedTextMessage.contextInfo.quotedMessage || []
+          : [];
+      const body =
+        type === "conversation"
+          ? mek.message.conversation
+          : mek.message?.extendedTextMessage?.contextInfo?.hasOwnProperty(
+              "quotedMessage"
+            ) &&
+            (await isbtnID(
+              mek.message?.extendedTextMessage?.contextInfo?.stanzaId
+            )) &&
+            getCmdForCmdId(
+              await getCMDStore(
+                mek.message?.extendedTextMessage?.contextInfo?.stanzaId
+              ),
+              mek?.message?.extendedTextMessage?.text
+            )
+          ? getCmdForCmdId(
+              await getCMDStore(
+                mek.message?.extendedTextMessage?.contextInfo?.stanzaId
+              ),
+              mek?.message?.extendedTextMessage?.text
+            )
+          : type === "extendedTextMessage"
+          ? mek.message.extendedTextMessage.text
+          : type == "imageMessage" && mek.message.imageMessage.caption
+          ? mek.message.imageMessage.caption
+          : type == "videoMessage" && mek.message.videoMessage.caption
+          ? mek.message.videoMessage.caption
+          : "";
             const prefix = userConfig.PREFIX || ".";
             const isCmd = body.startsWith(prefix);
             const command = isCmd ? body.slice(prefix.length).trim().split(" ").shift().toLowerCase() : "";
@@ -476,48 +565,87 @@ function setupCommandHandlers(socket, number, userConfig) {
             const reply = (teks) => socket.sendMessage(from, { text: teks }, { quoted: mek });
 
             // Set up button/list helpers on socket for this message
-            socket.buttonMessage = async (jid, msgData, quotemek) => {
-                if (!NON_BUTTON) {
-                    await socket.sendMessage(jid, msgData);
-                } else {
-                    let result = "";
-                    const CMD_ID_MAP = [];
-                    msgData.buttons.forEach((button, bttnIndex) => {
-                        const mainNumber = `${bttnIndex + 1}`;
-                        result += `\n◈ *${mainNumber} - ${button.buttonText.displayText}*`;
-                        CMD_ID_MAP.push({ cmdId: mainNumber, cmd: button.buttonId });
-                    });
-                    const buttonMessage = `${msgData.text || msgData.caption}\n\n*╭─────────────────❥➻*\n*╎*  ${cos}🔢 Reply Below Number:${cos}\n*╰─────────────────❥➻*\n${result}\n\n${msgData.footer}`;
-                    const btnimg = msgData.image ? { url: msgData.image } : { url: userConfig.IMAGE_PATH };
-                    if (msgData.headerType === 1 || msgData.headerType === 4) {
-                        const imgmsg = await socket.sendMessage(jid, { image: btnimg, caption: buttonMessage }, { quoted: quotemek || mek });
-                        await updateCMDStore(imgmsg.key.id, CMD_ID_MAP);
-                    }
-                }
-            };
+            conn.buttonMessage = async (jid, msgData, quotemek) => {
+        if (!NON_BUTTON) {
+          await conn.sendMessage(jid, msgData);
+        } else {
+          let result = "";
+          const CMD_ID_MAP = [];
 
-            socket.listMessage = async (jid, msgData, quotemek) => {
-                if (!NON_BUTTON) {
-                    await socket.sendMessage(jid, msgData);
-                } else {
-                    let result = "";
-                    const CMD_ID_MAP = [];
-                    msgData.sections.forEach((section, sectionIndex) => {
-                        const mainNumber = `${sectionIndex + 1}`;
-                        result += `\n*${mainNumber} :* ${section.title}\n`;
-                        section.rows.forEach((row, rowIndex) => {
-                            const subNumber = `${mainNumber}.${rowIndex + 1}`;
-                            result += `◦  ${subNumber} - ${row.title}\n`;
-                            CMD_ID_MAP.push({ cmdId: subNumber, cmd: row.rowId });
-                        });
-                    });
-                    const listimg = msgData.image ? { url: msgData.image } : { url: userConfig.IMAGE_PATH };
-                    const listMessage = `${msgData.text}\n\n*╭─────────────────❥➻*\n*╎*  ${cos}🔢 Reply Below Number:${cos}\n*╰─────────────────❥➻*\n\n${result}\n\n${msgData.footer}`;
-                    const text = await socket.sendMessage(jid, { image: listimg, caption: listMessage }, { quoted: quotemek || mek });
-                    await updateCMDStore(text.key.id, CMD_ID_MAP);
-                }
-            };
+          msgData.buttons.forEach((button, bttnIndex) => {
+            const mainNumber = `${bttnIndex + 1}`;
+            result += `\n◈ *${mainNumber} - ${button.buttonText.displayText}*`;
+            CMD_ID_MAP.push({ cmdId: mainNumber, cmd: button.buttonId });
+          });
 
+          const buttonMessage = `
+${msgData.text || msgData.caption}
+
+*╭─────────────────❥➻*
+*╎*  ${cos}🔢 Reply Below Number:${cos}
+*╰─────────────────❥➻*
+${result}
+
+${msgData.footer}`;
+
+          const btnimg = msgData.image
+            ? { url: msgData.image }
+            : { url: config.BOT_IMAGE };
+
+          if (msgData.headerType === 1 || msgData.headerType === 4) {
+            const imgmsg = await conn.sendMessage(
+              jid,
+              { image: btnimg, caption: buttonMessage },
+              { quoted: quotemek || mek }
+            );
+            await updateCMDStore(imgmsg.key.id, CMD_ID_MAP);
+          }
+        }
+      };
+
+      conn.listMessage = async (jid, msgData, quotemek) => {
+        if (!NON_BUTTON) {
+          await conn.sendMessage(jid, msgData);
+        } else {
+          let result = "";
+          const CMD_ID_MAP = [];
+
+          msgData.sections.forEach((section, sectionIndex) => {
+            const mainNumber = `${sectionIndex + 1}`;
+            result += `\n*${mainNumber} :* ${section.title}\n`;
+
+            section.rows.forEach((row, rowIndex) => {
+              const subNumber = `${mainNumber}.${rowIndex + 1}`;
+              const rowHeader = `◦  ${subNumber} - ${row.title}`;
+              result += `${rowHeader}\n`;
+              CMD_ID_MAP.push({ cmdId: subNumber, cmd: row.rowId });
+            });
+          });
+
+          const listimg = msgData.image
+            ? { url: msgData.image }
+            : { url: config.BOT_IMAGE };
+
+          const listMessage = `
+${msgData.text}
+
+*╭─────────────────❥➻*
+*╎*  ${cos}🔢 Reply Below Number:${cos}
+*╰─────────────────❥➻*
+
+${result}
+
+${msgData.footer}`;
+
+          const text = await conn.sendMessage(
+            from,
+            { image: listimg, caption: listMessage },
+            { quoted: quotemek || mek }
+          );
+
+          await updateCMDStore(text.key.id, CMD_ID_MAP);
+        }
+      };
             if (isCmd) {
                 const matchedCmd = registeredCommands.find((c) => c.pattern === command) ||
                     registeredCommands.find((c) => c.alias && c.alias.includes(command));
