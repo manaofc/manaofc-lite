@@ -27,8 +27,8 @@ const defaultConfig = {
     PREFIX: '.',
     MAX_RETRIES: 3,
     ADMIN_LIST_PATH: './admin.json',
-    IMAGE_PATH: './dyby.png',
-    OWNER_NUMBER: ''
+    IMAGE_PATH: 'https://files.catbox.moe/i33owf.png',
+    OWNER_NUMBER: '94759934522'
 };
 
 // GitHub Octokit initialization
