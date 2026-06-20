@@ -689,7 +689,7 @@ async (socket, mek, m, { from, prefix, q, reply }) => {
         }));
 
         const buttonMessage = {
-            image:  userConfig.IMAGE_PATH, // first result thumbnail
+            image: userConfig.IMAGE_PATH, // first result thumbnail
             caption: `*XNXX SEARCH RESULTS 🔞*\n📄 Page: ${currentPage}`,
             footer: "> Powered By manaofc",
             buttons: rows,
