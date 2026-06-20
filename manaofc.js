@@ -558,7 +558,7 @@ cmd(
     dontAddCommandList: true,
     filename: __filename,
   },
-  async (conn, mek, m, { from, q, reply }) => {
+  async (socket, mek, m, { from, q, reply }) => {
     try {
       if (!q) return reply("❌ *Need a YouTube URL!*");
 
@@ -566,22 +566,24 @@ cmd(
         react: { text: "⬇️", key: mek.key },
       });
 
-      const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3-v2?url=${encodeURIComponent(q)}`;
+      // Fetch API
+      const res = await fetch(
+        `https://api-dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(q)}&apikey=d1e93aa8203b49d5`
+      );
 
-      const res = await axios.get(apiUrl, { timeout: 30000 });
-      const data = res.data;
+      const json = await res.json();
 
-      if (!data.status || !data.data?.download) {
-        return reply("❌ *Failed to fetch audio link!*");
+      if (!json.status || !json.data.download) {
+        return reply("❌ *Failed to fetch audio!*");
       }
 
-      const audioUrl = data.data.download;
-
+      // Send audio file
       await socket.sendMessage(
         from,
         {
-          audio: { url: audioUrl },
+          audio: { url: json.data.download },
           mimetype: "audio/mpeg",
+          ptt: false,
         },
         { quoted: mek }
       );
@@ -589,6 +591,7 @@ cmd(
       await socket.sendMessage(from, {
         react: { text: "✔️", key: mek.key },
       });
+
     } catch (e) {
       console.log(e);
       reply("❌ *Audio download failed!*");
@@ -601,7 +604,7 @@ cmd(
 cmd(
   {
     pattern: "ytd",
-    react: "📁",
+    react: "⬇️",
     dontAddCommandList: true,
     filename: __filename,
   },
@@ -613,24 +616,25 @@ cmd(
         react: { text: "⬇️", key: mek.key },
       });
 
-      const apiUrl = `https://api-dark-shan-yt.koyeb.app/download/ytmp3-v2?url=${encodeURIComponent(q)}`;
+      // Fetch API
+      const res = await fetch(
+        `https://api-dark-shan-yt.koyeb.app/download/ytmp3?url=${encodeURIComponent(q)}&apikey=d1e93aa8203b49d5`
+      );
 
-      const res = await axios.get(apiUrl, { timeout: 30000 });
-      const data = res.data;
+      const json = await res.json();
 
-      if (!data.status || !data.data?.download) {
+      if (!json.status || !json.data.download) {
         return reply("❌ *Failed to fetch document link!*");
       }
 
-      const audioUrl = data.data.download;
-      const title = data.data.title || "Manaofc-Music";
-
+      // Send as document
       await socket.sendMessage(
         from,
         {
-          document: { url: audioUrl },
+          document: { url: json.data.download },
           mimetype: "audio/mpeg",
-          fileName: `${title}.mp3`,
+          fileName: `${json.data.title}.mp3`,
+          caption: `🎵 *${json.data.title}*`,
         },
         { quoted: mek }
       );
@@ -638,6 +642,7 @@ cmd(
       await socket.sendMessage(from, {
         react: { text: "✔️", key: mek.key },
       });
+
     } catch (e) {
       console.log(e);
       reply("❌ *Document download failed!*");
