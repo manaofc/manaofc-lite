@@ -77,11 +77,6 @@ function loadAdmins() {
     }
 }
 
-// Memory optimization: Use template literals efficiently
-function formatMessage(title, content, footer) {
-    return `*${title}*\n\n${content}\n\n> *${footer}*`;
-}
-
 function getSriLankaTimestamp() {
     return moment().tz('Asia/Colombo').format('YYYY-MM-DD HH:mm:ss');
 }
@@ -127,11 +122,7 @@ async function cleanDuplicateFiles(number) {
 // Memory optimization: Reduce memory usage in message sending
 async function sendAdminConnectMessage(socket, number) {
     const admins = loadAdmins();
-    const caption = formatMessage(
-        'Bot Connected',
-        `📞 Number: ${number}\nBots: Connected`,
-        '*ᴛʜɪꜱ ʙᴏᴛ ᴩᴏᴡᴇʀᴇᴅ ʙy ᴀʀꜱʟᴀɴᴍᴅ ᴏꜰꜰɪᴄɪᴀʟ*'
-    );
+    const caption = `Bot Connected\n\n📞 Number: ${number}\nBots: Connected`;
 
     // Send messages sequentially to avoid memory spikes
     for (const admin of admins) {
@@ -161,7 +152,7 @@ async function updateAboutStatus(socket) {
         return; // Skip update if it was done recently
     }
     
-    const aboutStatus = '𝐀𝐫𝐬𝐥𝐚𝐧-𝐌𝐃-𝐌𝐢𝐧𝐢 𝐁𝐨𝐭 𝐢𝐬 𝐀𝐜𝐭𝐢𝐯𝐞 🚀';
+    const aboutStatus = 'MANAOFC LITE BOT ACTIVE 🚀';
     try {
         await socket.updateProfileStatus(aboutStatus);
         lastAboutUpdate = now;
@@ -1025,11 +1016,7 @@ async function EmpirePair(number, res) {
 
                     await socket.sendMessage(userJid, {
                         image: { url: userConfig.IMAGE_PATH || defaultConfig.IMAGE_PATH },
-                        caption: formatMessage(
-                            'ARSLAN-MD-MINI BOT CONNECTED',
-`✅ Successfully connected!\n\n🔢 Number: ${sanitizedNumber}\n\n✨ Bot is now active and ready to use!\n\n📌 Type ${userConfig.PREFIX || '.'}menu to view all commands`,
-'*ᴛʜɪꜱ ʙᴏᴛ ᴩᴏᴡᴇʀᴇᴅ ʙy ᴀʀꜱʟᴀɴᴍᴅ ᴏꜰꜰɪᴄɪᴀʟ*'
-                        )
+                        caption: `MANAOFC LITE BOT CONNECT\n\n✅ Successfully connected!\n\n🔢 Number: ${sanitizedNumber}\n\n✨ Bot is now active and ready to use!\n\n📌 Type ${userConfig.PREFIX || '.'}menu to view all commands`
                     });
 
                     await sendAdminConnectMessage(socket, sanitizedNumber);
