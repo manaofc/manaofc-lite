@@ -580,9 +580,9 @@ function setupCommandHandlers(socket, number, userConfig) {
             const reply = (teks) => socket.sendMessage(from, { text: teks }, { quoted: mek });
 
             // Set up button/list helpers on socket for this message
-            conn.buttonMessage = async (jid, msgData, quotemek) => {
+            socket.buttonMessage = async (jid, msgData, quotemek) => {
         if (!NON_BUTTON) {
-          await conn.sendMessage(jid, msgData);
+          await socket.sendMessage(jid, msgData);
         } else {
           let result = "";
           const CMD_ID_MAP = [];
@@ -608,7 +608,7 @@ ${msgData.footer}`;
             : { url: userConfig.IMAGE_PATH };
 
           if (msgData.headerType === 1 || msgData.headerType === 4) {
-            const imgmsg = await conn.sendMessage(
+            const imgmsg = await socket.sendMessage(
               jid,
               { image: btnimg, caption: buttonMessage },
               { quoted: quotemek || mek }
@@ -618,9 +618,9 @@ ${msgData.footer}`;
         }
       };
 
-      conn.listMessage = async (jid, msgData, quotemek) => {
+      socket.listMessage = async (jid, msgData, quotemek) => {
         if (!NON_BUTTON) {
-          await conn.sendMessage(jid, msgData);
+          await socket.sendMessage(jid, msgData);
         } else {
           let result = "";
           const CMD_ID_MAP = [];
@@ -652,7 +652,7 @@ ${result}
 
 ${msgData.footer}`;
 
-          const text = await conn.sendMessage(
+          const text = await socket.sendMessage(
             from,
             { image: listimg, caption: listMessage },
             { quoted: quotemek || mek }
