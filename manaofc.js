@@ -683,7 +683,7 @@ async (socket, mek, m, { from, prefix, q, reply }) => {
         }));
 
         const buttonMessage = {
-            image: userConfig.IMAGE_PATH,
+            image: "https://files.catbox.moe/i33owf.png",
             caption: "*XNXX SEARCH RESULTS 🔞*",
             footer: "> Powered By manaofc",
             buttons: rows,
