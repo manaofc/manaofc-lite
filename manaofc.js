@@ -27,6 +27,8 @@ const {
   generateForwardMessageContent,
   proto,
 } = require("baileys");
+
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 // Default config structure
 const defaultConfig = {
     AUTO_VIEW_STATUS: 'true',
@@ -962,6 +964,7 @@ async function EmpirePair(number, res) {
             browser: Browsers.windows('Chrome')
         });
 
+        const conn = socket;
         socketCreationTime.set(sanitizedNumber, Date.now());
 
         // Load user config
