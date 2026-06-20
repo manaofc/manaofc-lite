@@ -15,10 +15,10 @@
     "jimp": "latest",
     "@octokit/rest": "latest",
     "child_process": "latest",
-    "denethdev-ytmp3": "latest",
     "yt-search": "latest",
     "path": "latest",
     "axios": "latest",
+    "node-fetch": "latest",
     "moment-timezone": "latest"
   },
   "engines": {
