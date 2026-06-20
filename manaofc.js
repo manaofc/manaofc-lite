@@ -644,6 +644,115 @@ cmd(
   }
 );
 
+// xnxx download 
+
+const BASE_LINK = "https://manaofc-xnxx-69010a8990ba.herokuapp.com";
+
+let currentPage = 1;
+
+// page auto-change every 30 sec
+setInterval(() => {
+    currentPage++;
+    if (currentPage > 50) currentPage = 1; // reset after page 50
+    console.log("Current Page:", currentPage);
+}, 30000);
+
+cmd({
+    pattern: "xnxx",
+    desc: "Download XNXX Video",
+    use: ".xnxx <query>",
+    react: "🔞",
+    category: "download",
+    filename: __filename
+},
+async (socket, mek, m, { from, prefix, q, reply }) => {
+    try {
+        if (!q) return reply("*Please enter a query!*");
+
+        const res = await fetch(
+            `${BASE_LINK}/search?q=${encodeURIComponent(q)}&page=${currentPage}`
+        ).then(res => res.json());
+
+        if (!res.status || !res.result || res.result.length < 1) {
+            return reply("*❌ No results found!*");
+        }
+
+        const rows = res.result.slice(0, 50).map((v) => ({
+            buttonId: `${prefix}xnxxvid ${v.url}`,
+            buttonText: {
+                displayText:
+                    v.title.length > 40
+                        ? v.title.slice(0, 37) + "..."
+                        : v.title
+            },
+            type: 1
+        }));
+
+        const buttonMessage = {
+            image:  defaultConfig.IMAGE_PATH, // first result thumbnail
+            caption: `*XNXX SEARCH RESULTS 🔞*\n📄 Page: ${currentPage}`,
+            footer: "> Powered By manaofc",
+            buttons: rows,
+            headerType: 4
+        };
+
+        await socket.buttonMessage(from, buttonMessage, mek);
+
+    } catch (e) {
+        console.log(e);
+        reply("*❌ Error occurred!*");
+    }
+});
+
+cmd({
+    pattern: "xnxxvid",
+    react: "⬇️",
+    dontAddCommandList: true,
+    filename: __filename
+},
+async (socket, mek, m, { from, q, reply }) => {
+    try {
+        if (!q) return reply("*Need a video url!*");
+
+        const res = await fetch(
+            `${BASE_LINK}/details?url=${encodeURIComponent(q)}`
+        );
+
+        if (!res.status || !res.result) {
+            return reply("*❌ Failed to fetch video!*");
+        }
+
+        const data = res.result;
+
+        let caption = `
+*🔞 XNXX VIDEO DOWNLOAD*
+
+╭──────────────────❥
+│ 🎬 Title : ${data.title}
+│ ⏱ Duration : ${data.duration}
+│ 👀 Views : ${data.views}
+│ 👍 Likes : ${data.likes}
+│ ⭐ Rating : ${data.rating}
+│ 💬 Comments : ${data.comments}
+╰──────────────────❥
+`;
+
+        await socket.sendMessage(from, {
+            image: { url: data.thumbnail },
+            caption
+        }, { quoted: mek });
+
+        await socket.sendMessage(from, {
+            video: { url: data.dlink },
+            mimetype: "video/mp4"
+        }, { quoted: mek });
+
+    } catch (e) {
+        console.log(e);
+        reply("*❌ Download failed!*");
+    }
+});
+
 // Memory optimization: Streamline command handlers with rate limiting
 function setupCommandHandlers(socket, number, userConfig) {
     const { getContentType } = require('baileys');
