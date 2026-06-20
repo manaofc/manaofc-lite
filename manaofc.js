@@ -486,7 +486,7 @@ async (conn, mek, m, { from, reply }) => {
 
 // 📥 download command 📥
 
-
+/* ================== SONG SEARCH ================== */
 cmd(
   {
     pattern: "song",
@@ -649,6 +649,175 @@ cmd(
     }
   }
 );
+
+/* ================== VIDEO SEARCH ================== */
+cmd(
+  {
+    pattern: "video",
+    react: "🎬",
+    alias: ["mp4", "ytv"],
+    category: "download",
+    use: ".video <video Name or YouTube URL>",
+    filename: __filename,
+  },
+  async (socket, mek, m, { from, prefix, q, reply }) => {
+    try {
+      if (!q) return reply("❌ *Please provide a video name or YouTube URL!*");
+
+      const search = await yts(q);
+      if (!search.videos || search.videos.length === 0) {
+        return reply("⚠️ *No video results found!*");
+      }
+
+      const video = search.videos[0];
+
+      const caption = `
+
+*🎬 MANISHA-MD-V6 VIDEO DOWNLOAD.📥*
+╭──────────────────❥
+│✨ \`Title\` : ${video.title}
+│⏰ \`Duration\` : ${video.timestamp}
+│👀 \`Views\` : ${video.views}
+│ 📅 ‍ \`Uploaded\` : ${video.ago}
+│ 📺 ‍ \`Channel\` : ${video.author.name}
+╰──────────────────❥
+
+> _*Powered By Manaofc*_ `;
+
+      const buttons = [
+        {
+          buttonId: `${prefix}ytvv ${video.url}`,
+          buttonText: { displayText: "VIDEO TYPE 🎬" },
+          type: 1,
+        },
+        {
+          buttonId: `${prefix}ytvd ${video.url}`,
+          buttonText: { displayText: "DOCUMENT TYPE 📁" },
+          type: 1,
+        },
+      ];
+
+      const buttonMessage = {
+        image: video.thumbnail,
+        caption: caption,
+        footer: "> _Powered By Manaofc_",
+        buttons: buttons,
+        headerType: 4,
+      };
+
+      await socket.buttonMessage(from, buttonMessage, mek);
+    } catch (e) {
+      console.log(e);
+      reply("❌ *An error occurred while searching!*");
+    }
+  }
+);
+
+/* ================== VIDEO DOWNLOAD ================== */
+
+cmd(
+  {
+    pattern: "ytvv",
+    react: "⬇️",
+    dontAddCommandList: true,
+    filename: __filename,
+  },
+  async (socket, mek, m, { from, q, reply }) => {
+    try {
+      if (!q) return reply("❌ *Need a YouTube URL!*");
+
+      // React loading
+      await socket.sendMessage(from, {
+        react: { text: "⬇️", key: mek.key },
+      });
+
+      // Fetch video API
+      const res = await fetch(
+        `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(q)}&quality=720&apikey=d1e93aa8203b49d5`
+      );
+
+      const json = await res.json();
+
+      if (!json.status || !json.data.download) {
+        return reply("❌ *Failed to fetch video!*");
+      }
+
+      // Send video with caption
+      await socket.sendMessage(
+        from,
+        {
+          video: { url: json.data.download },
+          mimetype: "video/mp4",
+          caption: `🎬 *${json.data.title || "Unknown"}*\n📀 Quality: ${json.data.quality}p`,
+        },
+        { quoted: mek }
+      );
+
+      // Success react
+      await socket.sendMessage(from, {
+        react: { text: "✔️", key: mek.key },
+      });
+
+    } catch (e) {
+      console.log(e);
+      reply("❌ *Video download failed!*");
+    }
+  }
+);
+
+/* ================== VIDEO DOCUMENT DOWNLOAD ================== */
+
+cmd(
+  {
+    pattern: "ytvd",
+    react: "⬇️",
+    dontAddCommandList: true,
+    filename: __filename,
+  },
+  async (socket, mek, m, { from, q, reply }) => {
+    try {
+      if (!q) return reply("❌ *Need a YouTube URL!*");
+
+      // Loading react
+      await socket.sendMessage(from, {
+        react: { text: "⬇️", key: mek.key },
+      });
+
+      // Fetch API
+      const res = await fetch(
+        `https://api-dark-shan-yt.koyeb.app/download/ytmp4?url=${encodeURIComponent(q)}&quality=720&apikey=d1e93aa8203b49d5`
+      );
+
+      const json = await res.json();
+
+      if (!json.status || !json.data.download) {
+        return reply("❌ *Failed to fetch document!*");
+      }
+
+      // Send as document
+      await socket.sendMessage(
+        from,
+        {
+          document: { url: json.data.download },
+          mimetype: "video/mp4",
+          fileName: `${json.data.title || "video"}.mp4`,
+          caption: `📂 *${json.data.title || "Unknown"}*\n📀 Quality: ${json.data.quality}p`,
+        },
+        { quoted: mek }
+      );
+
+      // Success react
+      await socket.sendMessage(from, {
+        react: { text: "✔️", key: mek.key },
+      });
+
+    } catch (e) {
+      console.log(e);
+      reply("❌ *Document download failed!*");
+    }
+  }
+);
+
 
 // xnxx download 
 
