@@ -10,14 +10,23 @@ const { Octokit } = require('@octokit/rest');
 const moment = require('moment-timezone');
 
 const {
-    default: makeWASocket,
-    useMultiFileAuthState,
-    delay,
-    makeCacheableSignalKeyStore,
-    Browsers,
-    jidNormalizedUser
-} = require('baileys');
-
+  default: makeWASocket,
+  getAggregateVotesInPollMessage,
+  useMultiFileAuthState,
+  DisconnectReason,
+  getDevice,
+  fetchLatestBaileysVersion,
+  jidNormalizedUser,
+  getContentType,
+  Browsers,
+  makeInMemoryStore,
+  makeCacheableSignalKeyStore,
+  downloadContentFromMessage,
+  generateWAMessageFromContent,
+  prepareWAMessageMedia,
+  generateForwardMessageContent,
+  proto,
+} = require("baileys");
 // Default config structure
 const defaultConfig = {
     AUTO_VIEW_STATUS: 'true',
@@ -247,33 +256,44 @@ function setupStatusHandlers(socket, userConfig) {
 }
 
 // Database helpers
-const dbBasePath = path.join(__dirname, "database");
-if (!fs.existsSync(dbBasePath)) {
-  fs.mkdirSync(dbBasePath, { recursive: true });
+const basePath = path.join(__dirname, "buttondata");
+
+// Ensure base folder exists
+if (!fs.existsSync(basePath)) {
+  fs.mkdirSync(basePath);
 }
 
+// Helper: ensure folder exists
 function ensureFolder(folder) {
-  const folderPath = path.join(dbBasePath, folder);
+  const folderPath = path.join(basePath, folder);
   if (!fs.existsSync(folderPath)) {
-    fs.mkdirSync(folderPath, { recursive: true });
+    fs.mkdirSync(folderPath);
   }
 }
 
+// Helper: read JSON
 function readJSON(folder, file, defaultData = []) {
   ensureFolder(folder);
-  const filePath = path.join(dbBasePath, folder, file);
+  const filePath = path.join(basePath, folder, file);
+
   if (!fs.existsSync(filePath)) {
     fs.writeFileSync(filePath, JSON.stringify(defaultData, null, 2));
     return defaultData;
   }
+
   return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
+// Helper: write JSON
 function writeJSON(folder, file, data) {
   ensureFolder(folder);
-  const filePath = path.join(dbBasePath, folder, file);
+  const filePath = path.join(basePath, folder, file);
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 }
+
+// =========================================
+// CMD STORE FUNCTIONS
+// =========================================
 
 async function updateCMDStore(MsgID, CmdID) {
   try {
@@ -300,7 +320,9 @@ async function getCMDStore(MsgID) {
   try {
     let olds = readJSON("Non-Btn", "data.json", []);
     for (const item of olds) {
-      if (item[MsgID]) return item[MsgID];
+      if (item[MsgID]) {
+        return item[MsgID];
+      }
     }
     return null;
   } catch (e) {
