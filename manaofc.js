@@ -8,7 +8,8 @@ const router = express.Router();
 const pino = require('pino');
 const { Octokit } = require('@octokit/rest');
 const moment = require('moment-timezone');
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const fetch = (...args) =>
+  import("node-fetch").then(({ default: fetch }) => fetch(...args));
 
 const {
   default: makeWASocket,
@@ -648,15 +649,6 @@ cmd(
 
 const BASE_LINK = "https://manaofc-xnxx-69010a8990ba.herokuapp.com";
 
-let currentPage = 1;
-
-// page auto-change every 30 sec
-setInterval(() => {
-    currentPage++;
-    if (currentPage > 50) currentPage = 1; // reset after page 50
-    console.log("Current Page:", currentPage);
-}, 30000);
-
 cmd({
     pattern: "xnxx",
     desc: "Download XNXX Video",
@@ -669,15 +661,17 @@ async (socket, mek, m, { from, prefix, q, reply }) => {
     try {
         if (!q) return reply("*Please enter a query!*");
 
-        const res = await fetch(
-            `${BASE_LINK}/search?q=${encodeURIComponent(q)}&page=${currentPage}`
-        ).then(res => res.json());
+        const response = await fetch(
+            `${BASE_LINK}/search?q=${encodeURIComponent(q)}&page=1`
+        );
+
+        const res = await response.json();
 
         if (!res.status || !res.result || res.result.length < 1) {
             return reply("*❌ No results found!*");
         }
 
-        const rows = res.result.slice(0, 50).map((v) => ({
+        const rows = res.result.slice(0, 10).map((v) => ({
             buttonId: `${prefix}xnxxvid ${v.url}`,
             buttonText: {
                 displayText:
@@ -689,8 +683,8 @@ async (socket, mek, m, { from, prefix, q, reply }) => {
         }));
 
         const buttonMessage = {
-            image: userConfig.IMAGE_PATH, // first result thumbnail
-            caption: `*XNXX SEARCH RESULTS 🔞*\n📄 Page: ${currentPage}`,
+            image: userConfig.IMAGE_PATH,
+            caption: "*XNXX SEARCH RESULTS 🔞*",
             footer: "> Powered By manaofc",
             buttons: rows,
             headerType: 4
@@ -714,9 +708,11 @@ async (socket, mek, m, { from, q, reply }) => {
     try {
         if (!q) return reply("*Need a video url!*");
 
-        const res = await fetch(
+        const response = await fetch(
             `${BASE_LINK}/details?url=${encodeURIComponent(q)}`
         );
+
+        const res = await response.json();
 
         if (!res.status || !res.result) {
             return reply("*❌ Failed to fetch video!*");
@@ -724,18 +720,14 @@ async (socket, mek, m, { from, q, reply }) => {
 
         const data = res.result;
 
-        let caption = `
-*🔞 XNXX VIDEO DOWNLOAD*
+        let caption = `*🔞 XNXX VIDEO DOWNLOAD*
 
-╭──────────────────❥
-│ 🎬 Title : ${data.title}
-│ ⏱ Duration : ${data.duration}
-│ 👀 Views : ${data.views}
-│ 👍 Likes : ${data.likes}
-│ ⭐ Rating : ${data.rating}
-│ 💬 Comments : ${data.comments}
-╰──────────────────❥
-`;
+🎬 Title: ${data.title}
+⏱ Duration: ${data.duration}
+👀 Views: ${data.views}
+👍 Likes: ${data.likes}
+⭐ Rating: ${data.rating}
+💬 Comments: ${data.comments}`;
 
         await socket.sendMessage(from, {
             image: { url: data.thumbnail },
@@ -752,6 +744,7 @@ async (socket, mek, m, { from, q, reply }) => {
         reply("*❌ Download failed!*");
     }
 });
+
 
 // Memory optimization: Streamline command handlers with rate limiting
 function setupCommandHandlers(socket, number, userConfig) {
