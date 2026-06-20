@@ -581,7 +581,7 @@ ${msgData.footer}`;
 
           const btnimg = msgData.image
             ? { url: msgData.image }
-            : { url: config.BOT_IMAGE };
+            : { url: userConfig.IMAGE_PATH };
 
           if (msgData.headerType === 1 || msgData.headerType === 4) {
             const imgmsg = await conn.sendMessage(
@@ -615,7 +615,7 @@ ${msgData.footer}`;
 
           const listimg = msgData.image
             ? { url: msgData.image }
-            : { url: config.BOT_IMAGE };
+            : { url: userConfig.IMAGE_PATH };
 
           const listMessage = `
 ${msgData.text}
