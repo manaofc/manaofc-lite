@@ -8,6 +8,7 @@ const router = express.Router();
 const pino = require('pino');
 const { Octokit } = require('@octokit/rest');
 const moment = require('moment-timezone');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const {
   default: makeWASocket,
