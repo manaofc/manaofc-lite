@@ -922,7 +922,6 @@ async (socket, mek, m, { from, q, reply }) => {
 
 // Memory optimization: Streamline command handlers with rate limiting
 function setupCommandHandlers(socket, number, userConfig) {
-    const { getContentType } = require('baileys');
     const newsletterJids = ["120363348739987203@newsletter"];
     const emojis = ["🫡", "💪"];
     const cos = "```";
