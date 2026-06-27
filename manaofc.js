@@ -130,8 +130,7 @@ const defaultConfig = {
     AUTO_RECORDING: 'true',
     AUTO_LIKE_EMOJI: ['💥', '👍', '😍', '💗', '🎈', '🎉', '🥳', '😎', '🚀', '🔥'],
     PREFIX: '.',
-    MAX_RETRIES: 3,
-    ADMIN_LIST_PATH: './admin.json',
+    MAX_RETRIES: 43,
     IMAGE_PATH: 'https://files.catbox.moe/i33owf.png',
     OWNER_NUMBER: '94759934522'
 };
