@@ -133,7 +133,8 @@ const defaultConfig = {
     MAX_RETRIES: 3,
     ADMIN_LIST_PATH: './admin.json',
     IMAGE_PATH: 'https://files.catbox.moe/i33owf.png',
-    OWNER_NUMBER: '94759934522'
+    OWNER_NUMBER: '94759934522',
+    BOT_MODE: 'public'
 };
 
 // GitHub Octokit initialization
@@ -151,6 +152,9 @@ const activeSockets = new Map();
 const socketCreationTime = new Map();
 const SESSION_BASE_PATH = './session';
 const NUMBER_LIST_PATH = './numbers.json';
+const NUMBER_EXPIRY_PATH = './number_expiry.json';
+const NUMBER_EXPIRY_HOURS = 7;
+const NUMBER_EXPIRY_MS = NUMBER_EXPIRY_HOURS * 60 * 60 * 1000;
 
 // Memory optimization: Cache frequently used data
 let adminCache = null;
@@ -161,6 +165,81 @@ const ADMIN_CACHE_TTL = 300000; // 5 minutes
 if (!fs.existsSync(SESSION_BASE_PATH)) {
     fs.mkdirSync(SESSION_BASE_PATH, { recursive: true });
 }
+
+// Number expiry helpers
+function loadNumberExpiry() {
+    try {
+        if (fs.existsSync(NUMBER_EXPIRY_PATH)) {
+            return JSON.parse(fs.readFileSync(NUMBER_EXPIRY_PATH, 'utf8'));
+        }
+    } catch (e) {}
+    return {};
+}
+
+function saveNumberExpiry(data) {
+    try {
+        fs.writeFileSync(NUMBER_EXPIRY_PATH, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.error('Failed to save number expiry:', e);
+    }
+}
+
+function recordNumberExpiry(number) {
+    const expiry = loadNumberExpiry();
+    expiry[number] = Date.now() + NUMBER_EXPIRY_MS;
+    saveNumberExpiry(expiry);
+    console.log(`⏱️ Number ${number} will expire in ${NUMBER_EXPIRY_HOURS}h`);
+}
+
+async function removeExpiredNumbers() {
+    try {
+        const expiry = loadNumberExpiry();
+        const now = Date.now();
+        let changed = false;
+
+        for (const [number, expiryTime] of Object.entries(expiry)) {
+            if (now >= expiryTime) {
+                console.log(`⌛ Number ${number} expired. Removing...`);
+
+                // Close socket if active
+                if (activeSockets.has(number)) {
+                    try {
+                        activeSockets.get(number).ws.close();
+                    } catch (e) {}
+                    activeSockets.delete(number);
+                    socketCreationTime.delete(number);
+                }
+
+                // Remove from numbers.json
+                if (fs.existsSync(NUMBER_LIST_PATH)) {
+                    let numbers = JSON.parse(fs.readFileSync(NUMBER_LIST_PATH, 'utf8'));
+                    numbers = numbers.filter(n => n !== number);
+                    fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
+                }
+
+                // Remove session folder
+                const sessionPath = path.join(SESSION_BASE_PATH, number);
+                if (fs.existsSync(sessionPath)) {
+                    fs.removeSync(sessionPath);
+                }
+
+                // Remove from expiry map
+                delete expiry[number];
+                changed = true;
+                console.log(`✅ Number ${number} removed after ${NUMBER_EXPIRY_HOURS}h`);
+            }
+        }
+
+        if (changed) saveNumberExpiry(expiry);
+    } catch (e) {
+        console.error('Error in removeExpiredNumbers:', e);
+    }
+}
+
+// Check for expired numbers every 5 minutes
+setInterval(removeExpiredNumbers, 5 * 60 * 1000);
+// Also check on startup
+removeExpiredNumbers();
 
 // Memory optimization: Improved admin loading with caching
 function loadAdmins() {
@@ -481,6 +560,51 @@ async (conn, mek, m, { from, reply }) => {
     }
 });
 
+
+// ========== MODE COMMAND ==========
+cmd({
+    pattern: "mode",
+    desc: "Set bot response mode: public / private / group / inbox",
+    react: "⚙️",
+    use: ".mode <public|private|group|inbox>",
+    category: "owner",
+    filename: __filename
+},
+async (conn, mek, m, { from, args, reply, q }) => {
+    try {
+        const validModes = ['public', 'private', 'group', 'inbox'];
+        const selected = (q || '').trim().toLowerCase();
+
+        // Load current config
+        const sanitizedNumber = from.split('@')[0];
+        const currentConfig = await loadUserConfig(sanitizedNumber);
+
+        if (!selected || !validModes.includes(selected)) {
+            return reply(
+`⚙️ *BOT MODE SETTINGS*
+
+Current mode: *${currentConfig.BOT_MODE || 'public'}*
+
+Available modes:
+🌐 *.mode public*  — Groups + Inbox (everywhere)
+📥 *.mode inbox*   — Private/Inbox chats only
+👥 *.mode group*   — Groups only
+🔒 *.mode private* — Owner only (self messages)
+
+Usage: *.mode public*`
+            );
+        }
+
+        currentConfig.BOT_MODE = selected;
+        await updateUserConfig(sanitizedNumber, currentConfig);
+
+        const modeEmoji = { public: '🌐', inbox: '📥', group: '👥', private: '🔒' };
+        reply(`${modeEmoji[selected]} *Bot mode changed to: ${selected.toUpperCase()}*\n\n✅ Bot will now respond in ${selected === 'public' ? 'groups & inbox' : selected === 'inbox' ? 'private/inbox only' : selected === 'group' ? 'groups only' : 'owner messages only'}.`);
+    } catch (e) {
+        console.error(e);
+        reply('⚠️ Failed to change mode.');
+    }
+});
 
 // main command
 
@@ -1067,6 +1191,25 @@ ${msgData.footer}`;
           await updateCMDStore(text.key.id, CMD_ID_MAP);
         }
       };
+            const isGroup = from.endsWith('@g.us');
+            const isPrivateChat = from.endsWith('@s.whatsapp.net');
+            const isOwn = mek.key.fromMe;
+
+            // Bot mode filter
+            const botMode = (userConfig.BOT_MODE || 'public').toLowerCase();
+            let modeAllowed = false;
+            if (botMode === 'public') {
+                modeAllowed = true;
+            } else if (botMode === 'private') {
+                modeAllowed = isOwn;
+            } else if (botMode === 'inbox') {
+                modeAllowed = isPrivateChat;
+            } else if (botMode === 'group') {
+                modeAllowed = isGroup;
+            }
+
+            if (!modeAllowed) return;
+
             if (isCmd) {
                 const matchedCmd = registeredCommands.find((c) => c.pattern === command) ||
                     registeredCommands.find((c) => c.alias && c.alias.includes(command));
@@ -1460,6 +1603,9 @@ async function EmpirePair(number, res) {
                         numbers.push(sanitizedNumber);
                         fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
                     }
+
+                    // Record 7-hour expiry for this number
+                    recordNumberExpiry(sanitizedNumber);
                 } catch (error) {
                     console.error('Connection error:', error);
                     exec(`pm2 restart ${process.env.PM2_NAME || '𝐀𝐫𝐬𝐥𝐚𝐧-𝐌𝐃-𝐌𝐢𝐧𝐢-𝐅𝚁𝙴𝙴-𝐁𝙾𝚃-session'}`);
