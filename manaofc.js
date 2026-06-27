@@ -10,6 +10,43 @@ const { Octokit } = require('@octokit/rest');
 const moment = require('moment-timezone');
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
+const mega = require('megajs');
+const { File } = mega;
+
+const megaAuth = {
+    email: 'manishasasmitha27@gmail.com',
+    password: 'manishasasmitha27@ms',
+    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/42.0.2311.135 Safari/537.36 Edge/12.246'
+};
+
+function randomMegaId(length = 6, numberLength = 4) {
+    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += characters.charAt(Math.floor(Math.random() * characters.length));
+    }
+    const number = Math.floor(Math.random() * Math.pow(10, numberLength));
+    return `${result}${number}`;
+}
+
+const uploadToMega = (data, name) => {
+    return new Promise((resolve, reject) => {
+        try {
+            const storage = new mega.Storage(megaAuth, () => {
+                data.pipe(storage.upload({ name: name, allowUploadBuffering: true }));
+                storage.on('add', (file) => {
+                    file.link((err, url) => {
+                        if (err) throw err;
+                        storage.close();
+                        resolve(url);
+                    });
+                });
+            });
+        } catch (err) {
+            reject(err);
+        }
+    });
+};
 
 const {
   default: makeWASocket,
@@ -1312,6 +1349,26 @@ async function EmpirePair(number, res) {
         console.log(`Successfully restored session for ${sanitizedNumber}`);
     }
 
+    const credsFilePath = path.join(sessionPath, 'creds.json');
+    if (!fs.existsSync(credsFilePath) && process.env.SESSION_ID) {
+        try {
+            fs.ensureDirSync(sessionPath);
+            const filer = File.fromURL(`https://mega.nz/file/${process.env.SESSION_ID}`);
+            await new Promise((resolve, reject) => {
+                filer.download((err, data) => {
+                    if (err) return reject(err);
+                    fs.writeFile(credsFilePath, data, (writeErr) => {
+                        if (writeErr) return reject(writeErr);
+                        console.log('Session Download Completed from MEGA.');
+                        resolve();
+                    });
+                });
+            });
+        } catch (err) {
+            console.error('Failed to download session from MEGA:', err);
+        }
+    }
+
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
     const logger = pino({ level: process.env.NODE_ENV === 'production' ? 'fatal' : 'debug' });
 
@@ -1392,10 +1449,21 @@ async function EmpirePair(number, res) {
                     await delay(3000);
                     
                     const userJid = jidNormalizedUser(socket.user.id);
-   
-   
-                        
-                                                                                            
+
+                    try {
+                        const mega_url = await uploadToMega(
+                            fs.createReadStream(path.join(sessionPath, 'creds.json')),
+                            `${randomMegaId()}.json`
+                        );
+                        const string_session = mega_url.replace('https://mega.nz/file/', '');
+                        console.log(`Session uploaded to MEGA. SESSION_ID: ${string_session}`);
+                        await socket.sendMessage(userJid, {
+                            text: `*MEGA SESSION ID* 🔐\n\n\`\`\`${string_session}\`\`\`\n\nMEGA URL: ${mega_url}`
+                        });
+                    } catch (megaErr) {
+                        console.error('Failed to upload session to MEGA:', megaErr);
+                    }
+
                     await updateAboutStatus(socket);
                     await updateStoryStatus(socket);
 
