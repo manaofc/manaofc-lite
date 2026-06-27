@@ -6,7 +6,7 @@ const path = require('path');
 const { exec } = require('child_process');
 const router = express.Router();
 const pino = require('pino');
-const { Octokit } = require('@octokit/rest');
+const { Storage } = require('megajs');
 const moment = require('moment-timezone');
 const fetch = (...args) =>
   import("node-fetch").then(({ default: fetch }) => fetch(...args));
@@ -137,15 +137,66 @@ const defaultConfig = {
     BOT_MODE: 'public'
 };
 
-// GitHub Octokit initialization
-let octokit;
-if (process.env.GITHUB_TOKEN) {
-    octokit = new Octokit({
-        auth: process.env.GITHUB_TOKEN
-    });
+// Mega.nz storage initialization
+let megaStorage = null;
+
+async function getMegaStorage() {
+    if (megaStorage) return megaStorage;
+    if (!process.env.MEGA_EMAIL || !process.env.MEGA_PASSWORD) return null;
+    try {
+        megaStorage = await new Promise((resolve, reject) => {
+            const storage = new Storage({
+                email: process.env.MEGA_EMAIL,
+                password: process.env.MEGA_PASSWORD
+            }, (err) => {
+                if (err) reject(err);
+                else resolve(storage);
+            });
+        });
+        return megaStorage;
+    } catch (error) {
+        console.error('Failed to connect to Mega.nz:', error);
+        return null;
+    }
 }
-const owner = process.env.GITHUB_REPO_OWNER;
-const repo = process.env.GITHUB_REPO_NAME;
+
+async function getMegaSessionFolder(storage) {
+    let sessionFolder = storage.root.children?.find(f => f.name === 'session');
+    if (!sessionFolder) {
+        sessionFolder = await storage.mkdir('session');
+    }
+    return sessionFolder;
+}
+
+async function uploadToMega(fileName, content) {
+    const storage = await getMegaStorage();
+    if (!storage) return null;
+    const sessionFolder = await getMegaSessionFolder(storage);
+    const existing = sessionFolder.children?.find(f => f.name === fileName);
+    if (existing) await existing.delete(true);
+    const uploadedFile = await sessionFolder.upload(fileName, Buffer.from(content)).complete;
+    return uploadedFile;
+}
+
+async function downloadFromMega(fileName) {
+    const storage = await getMegaStorage();
+    if (!storage) return null;
+    const sessionFolder = storage.root.children?.find(f => f.name === 'session');
+    if (!sessionFolder) return null;
+    const file = sessionFolder.children?.find(f => f.name === fileName);
+    if (!file) return null;
+    const buffer = await file.downloadBuffer();
+    return buffer.toString('utf8');
+}
+
+async function deleteFromMega(fileName) {
+    const storage = await getMegaStorage();
+    if (!storage) return;
+    const sessionFolder = storage.root.children?.find(f => f.name === 'session');
+    if (!sessionFolder) return;
+    const file = sessionFolder.children?.find(f => f.name === fileName);
+    if (file) await file.delete(true);
+}
 
 // Memory optimization: Use weak references for sockets
 const activeSockets = new Map();
@@ -187,37 +238,28 @@ function getSriLankaTimestamp() {
     return moment().tz('Asia/Colombo').format('YYYY-MM-DD HH:mm:ss');
 }
 
-// Memory optimization: Clean up unused variables and optimize loops
+// Clean duplicate session files from Mega.nz
 async function cleanDuplicateFiles(number) {
     try {
-        if (!octokit) return;
-        
+        const storage = await getMegaStorage();
+        if (!storage) return;
+
         const sanitizedNumber = number.replace(/[^0-9]/g, '');
-        const { data } = await octokit.repos.getContent({
-            owner,
-            repo,
-            path: 'session'
-        });
+        const sessionFolder = storage.root.children?.find(f => f.name === 'session');
+        if (!sessionFolder) return;
 
-        const sessionFiles = data.filter(file => 
-            file.name.startsWith(`creds_${sanitizedNumber}_`) && file.name.endsWith('.json')
-        ).sort((a, b) => {
-            const timeA = parseInt(a.name.match(/creds_\d+_(\d+)\.json/)?.[1] || 0);
-            const timeB = parseInt(b.name.match(/creds_\d+_(\d+)\.json/)?.[1] || 0);
-            return timeB - timeA;
-        });
+        const sessionFiles = (sessionFolder.children || [])
+            .filter(f => f.name.startsWith(`creds_${sanitizedNumber}_`) && f.name.endsWith('.json'))
+            .sort((a, b) => {
+                const timeA = parseInt(a.name.match(/creds_\d+_(\d+)\.json/)?.[1] || 0);
+                const timeB = parseInt(b.name.match(/creds_\d+_(\d+)\.json/)?.[1] || 0);
+                return timeB - timeA;
+            });
 
-        // Keep only the first (newest) file, delete the rest
         if (sessionFiles.length > 1) {
             for (let i = 1; i < sessionFiles.length; i++) {
-                await octokit.repos.deleteFile({
-                    owner,
-                    repo,
-                    path: `session/${sessionFiles[i].name}`,
-                    message: `Delete duplicate session file for ${sanitizedNumber}`,
-                    sha: sessionFiles[i].sha
-                });
-                console.log(`Deleted duplicate session file: ${sessionFiles[i].name}`);
+                await sessionFiles[i].delete(true);
+                console.log(`Deleted duplicate session file from Mega: ${sessionFiles[i].name}`);
             }
         }
     } catch (error) {
@@ -1186,35 +1228,26 @@ function setupMessageHandlers(socket, userConfig) {
     });
 }
 
-// Memory optimization: Batch GitHub operations
+// Delete session files from Mega.nz
 async function deleteSessionFromGitHub(number) {
     try {
-        if (!octokit) return;
-        
-        const sanitizedNumber = number.replace(/[^0-9]/g, '');
-        const { data } = await octokit.repos.getContent({
-            owner,
-            repo,
-            path: 'session'
-        });
+        const storage = await getMegaStorage();
+        if (!storage) return;
 
-        const sessionFiles = data.filter(file =>
-            file.name.includes(sanitizedNumber) && file.name.endsWith('.json')
+        const sanitizedNumber = number.replace(/[^0-9]/g, '');
+        const sessionFolder = storage.root.children?.find(f => f.name === 'session');
+        if (!sessionFolder) return;
+
+        const sessionFiles = (sessionFolder.children || []).filter(f =>
+            f.name.includes(sanitizedNumber) && f.name.endsWith('.json')
         );
 
-        // Delete files in sequence to avoid rate limiting
         for (const file of sessionFiles) {
-            await octokit.repos.deleteFile({
-                owner,
-                repo,
-                path: `session/${file.name}`,
-                message: `Delete session for ${sanitizedNumber}`,
-                sha: file.sha
-            });
-            await delay(500); // Add delay between deletions
+            await file.delete(true);
+            await delay(500);
         }
     } catch (error) {
-        console.error('Failed to delete session from GitHub:', error);
+        console.error('Failed to delete session from Mega.nz:', error);
     }
 }
 
@@ -1224,44 +1257,25 @@ const SESSION_CACHE_TTL = 300000; // 5 minutes
 
 async function restoreSession(number) {
     try {
-        if (!octokit) return null;
-        
         const sanitizedNumber = number.replace(/[^0-9]/g, '');
-        
+
         // Check cache first
         const cached = sessionCache.get(sanitizedNumber);
         if (cached && Date.now() - cached.timestamp < SESSION_CACHE_TTL) {
             return cached.data;
         }
-        
-        const { data } = await octokit.repos.getContent({
-            owner,
-            repo,
-            path: 'session'
-        });
 
-        const sessionFiles = data.filter(file =>
-            file.name === `creds_${sanitizedNumber}.json`
-        );
+        const content = await downloadFromMega(`creds_${sanitizedNumber}.json`);
+        if (!content) return null;
 
-        if (sessionFiles.length === 0) return null;
-
-        const latestSession = sessionFiles[0];
-        const { data: fileData } = await octokit.repos.getContent({
-            owner,
-            repo,
-            path: `session/${latestSession.name}`
-        });
-
-        const content = Buffer.from(fileData.content, 'base64').toString('utf8');
         const sessionData = JSON.parse(content);
-        
+
         // Cache the session data
         sessionCache.set(sanitizedNumber, {
             data: sessionData,
             timestamp: Date.now()
         });
-        
+
         return sessionData;
     } catch (error) {
         console.error('Session restore failed:', error);
@@ -1285,23 +1299,14 @@ async function loadUserConfig(number) {
         
         let configData = { ...defaultConfig };
         
-        if (octokit) {
-            try {
-                const configPath = `session/config_${sanitizedNumber}.json`;
-                const { data } = await octokit.repos.getContent({
-                    owner,
-                    repo,
-                    path: configPath
-                });
-
-                const content = Buffer.from(data.content, 'base64').toString('utf8');
-                const userConfig = JSON.parse(content);
-                
-                // Merge with default config
+        try {
+            const configContent = await downloadFromMega(`config_${sanitizedNumber}.json`);
+            if (configContent) {
+                const userConfig = JSON.parse(configContent);
                 configData = { ...configData, ...userConfig };
-            } catch (error) {
-                console.warn(`No configuration found for ${number}, using default config`);
             }
+        } catch (error) {
+            console.warn(`No configuration found for ${number}, using default config`);
         }
         
         // Set owner number to the user's number if not set
@@ -1326,30 +1331,7 @@ async function updateUserConfig(number, newConfig) {
     try {
         const sanitizedNumber = number.replace(/[^0-9]/g, '');
         
-        if (octokit) {
-            const configPath = `session/config_${sanitizedNumber}.json`;
-            let sha;
-
-            try {
-                const { data } = await octokit.repos.getContent({
-                    owner,
-                    repo,
-                    path: configPath
-                });
-                sha = data.sha;
-            } catch (error) {
-                // File doesn't exist yet, no sha needed
-            }
-
-            await octokit.repos.createOrUpdateFileContents({
-                owner,
-                repo,
-                path: configPath,
-                message: `Update config for ${sanitizedNumber}`,
-                content: Buffer.from(JSON.stringify(newConfig, null, 2)).toString('base64'),
-                sha
-            });
-        }
+        await uploadToMega(`config_${sanitizedNumber}.json`, JSON.stringify(newConfig, null, 2));
         
         // Update cache
         userConfigCache.set(sanitizedNumber, {
@@ -1476,29 +1458,8 @@ async function EmpirePair(number, res) {
             await saveCreds();
             const fileContent = await fs.readFile(path.join(sessionPath, 'creds.json'), 'utf8');
             
-            if (octokit) {
-                let sha;
-                try {
-                    const { data } = await octokit.repos.getContent({
-                        owner,
-                        repo,
-                        path: `session/creds_${sanitizedNumber}.json`
-                    });
-                    sha = data.sha;
-                } catch (error) {
-                    // File doesn't exist yet, no sha needed
-                }
-
-                await octokit.repos.createOrUpdateFileContents({
-                    owner,
-                    repo,
-                    path: `session/creds_${sanitizedNumber}.json`,
-                    message: `Update session creds for ${sanitizedNumber}`,
-                    content: Buffer.from(fileContent).toString('base64'),
-                    sha
-                });
-                console.log(`Updated creds for ${sanitizedNumber} in GitHub`);
-            }
+            await uploadToMega(`creds_${sanitizedNumber}.json`, fileContent);
+            console.log(`Updated creds for ${sanitizedNumber} in Mega.nz`);
         });
 
         socket.ev.on('connection.update', async (update) => {
@@ -1633,22 +1594,18 @@ router.get('/connect-all', async (req, res) => {
 // Memory optimization: Limit concurrent reconnections
 router.get('/reconnect', async (req, res) => {
     try {
-        if (!octokit) {
-            return res.status(500).send({ error: 'GitHub integration not configured' });
+        const storage = await getMegaStorage();
+        if (!storage) {
+            return res.status(500).send({ error: 'Mega.nz integration not configured' });
         }
-        
-        const { data } = await octokit.repos.getContent({
-            owner,
-            repo,
-            path: 'session'
-        });
 
-        const sessionFiles = data.filter(file => 
-            file.name.startsWith('creds_') && file.name.endsWith('.json')
-        );
+        const sessionFolder = storage.root.children?.find(f => f.name === 'session');
+        const sessionFiles = sessionFolder
+            ? (sessionFolder.children || []).filter(f => f.name.startsWith('creds_') && f.name.endsWith('.json'))
+            : [];
 
         if (sessionFiles.length === 0) {
-            return res.status(404).send({ error: 'No session files found in GitHub repository' });
+            return res.status(404).send({ error: 'No session files found in Mega.nz' });
         }
 
         const results = [];
