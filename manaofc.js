@@ -1114,10 +1114,10 @@ ${msgData.footer}`;
         }
       };
              const botNumber = conn.user.id.split(":")[0];
-             const botNumber2 = await jidNormalizedUser(socket.user.id);
-	           const pushname = mek.pushName || "NO NUMBER";
-	           const isMe = userConfig.OWNER_NUMBER.includes(senderNumber);
-	           const isOwner = userConfig.OWNER_NUMBER?.includes(senderNumber) || isMe;
+             const botNumber2 = await const sanitizedNumber(socket.user.id);
+	         const pushname = mek.pushName || "NO NUMBER";
+	         const isMe = userConfig.OWNER_NUMBER.includes(senderNumber);
+	         const isOwner = userConfig.OWNER_NUMBER?.includes(senderNumber) || isMe;
              const isGroup = from.endsWith("@g.us");
           
 
