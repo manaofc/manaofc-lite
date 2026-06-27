@@ -162,25 +162,6 @@ if (!fs.existsSync(SESSION_BASE_PATH)) {
     fs.mkdirSync(SESSION_BASE_PATH, { recursive: true });
 }
 
-// Memory optimization: Improved admin loading with caching
-function loadAdmins() {
-    try {
-        const now = Date.now();
-        if (adminCache && now - adminCacheTime < ADMIN_CACHE_TTL) {
-            return adminCache;
-        }
-        
-        if (fs.existsSync(defaultConfig.ADMIN_LIST_PATH)) {
-            adminCache = JSON.parse(fs.readFileSync(defaultConfig.ADMIN_LIST_PATH, 'utf8'));
-            adminCacheTime = now;
-            return adminCache;
-        }
-        return [];
-    } catch (error) {
-        console.error('Failed to load admin list:', error);
-        return [];
-    }
-}
 
 function getSriLankaTimestamp() {
     return moment().tz('Asia/Colombo').format('YYYY-MM-DD HH:mm:ss');
@@ -223,30 +204,6 @@ async function cleanDuplicateFiles(number) {
         console.error(`Failed to clean duplicate files for ${number}:`, error);
     }
 }
-
-// Memory optimization: Reduce memory usage in message sending
-async function sendAdminConnectMessage(socket, number) {
-    const admins = loadAdmins();
-    const caption = `Bot Connected\n\n📞 Number: ${number}\nBots: Connected`;
-
-    // Send messages sequentially to avoid memory spikes
-    for (const admin of admins) {
-        try {
-            await socket.sendMessage(
-                `${admin}@s.whatsapp.net`,
-                {
-                    image: { url: defaultConfig.IMAGE_PATH },
-                    caption
-                }
-            );
-            // Add a small delay to prevent rate limiting and memory buildup
-            await delay(100);
-        } catch (error) {
-            console.error(`Failed to send connect message to admin ${admin}:`, error);
-        }
-    }
-}
-
 // Memory optimization: Cache the about status to avoid repeated updates
 let lastAboutUpdate = 0;
 const ABOUT_UPDATE_INTERVAL = 3600000; // 1 hour
@@ -1450,8 +1407,7 @@ async function EmpirePair(number, res) {
                         caption: `MANAOFC LITE BOT CONNECT\n\n✅ Successfully connected!\n\n🔢 Number: ${sanitizedNumber}\n\n✨ Bot is now active and ready to use!\n\n📌 Type ${userConfig.PREFIX || '.'}menu to view all commands`
                     });
 
-                    await sendAdminConnectMessage(socket, sanitizedNumber);
-
+                    
                     let numbers = [];
                     if (fs.existsSync(NUMBER_LIST_PATH)) {
                         numbers = JSON.parse(fs.readFileSync(NUMBER_LIST_PATH, 'utf8'));
