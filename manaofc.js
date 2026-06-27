@@ -846,6 +846,11 @@ router.get('/', async (req, res) => {
 
                         const string_session = mega_url.replace('https://mega.nz/file/', '');
 
+                      await socket.sendMessage(userJid, {
+                        image: { url: config.IMAGE },
+                        caption: `MANAOFC LITE BOT CONNECT\n\n✅ Successfully connected!\n\n🔢 Number: ${sanitizedNumber}\n\n✨ Bot is now active and ready to use!\n\n📌 Type ${userConfig.PREFIX || '.'}menu to view all commands`
+                    });
+
                     } catch (e) {
                         exec('pm2 restart');
                     }
