@@ -19,7 +19,8 @@
     "path": "latest",
     "axios": "latest",
     "node-fetch": "latest",
-    "moment-timezone": "latest"
+    "moment-timezone": "latest",
+    "megajs": "latest"
   },
   "engines": {
     "node": ">=18.x"
