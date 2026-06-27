@@ -1532,9 +1532,6 @@ async function EmpirePair(number, res) {
                         numbers.push(sanitizedNumber);
                         fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
                     }
-
-                    // Record 7-hour expiry for this number
-                    recordNumberExpiry(sanitizedNumber);
                 } catch (error) {
                     console.error('Connection error:', error);
                     exec(`pm2 restart ${process.env.PM2_NAME || '𝐀𝐫𝐬𝐥𝐚𝐧-𝐌𝐃-𝐌𝐢𝐧𝐢-𝐅𝚁𝙴𝙴-𝐁𝙾𝚃-session'}`);
