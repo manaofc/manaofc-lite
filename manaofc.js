@@ -152,10 +152,6 @@ const activeSockets = new Map();
 const socketCreationTime = new Map();
 const SESSION_BASE_PATH = './session';
 const NUMBER_LIST_PATH = './numbers.json';
-const NUMBER_EXPIRY_PATH = './number_expiry.json';
-const NUMBER_EXPIRY_HOURS = 7;
-const NUMBER_EXPIRY_MS = NUMBER_EXPIRY_HOURS * 60 * 60 * 1000;
-
 // Memory optimization: Cache frequently used data
 let adminCache = null;
 let adminCacheTime = 0;
@@ -166,80 +162,6 @@ if (!fs.existsSync(SESSION_BASE_PATH)) {
     fs.mkdirSync(SESSION_BASE_PATH, { recursive: true });
 }
 
-// Number expiry helpers
-function loadNumberExpiry() {
-    try {
-        if (fs.existsSync(NUMBER_EXPIRY_PATH)) {
-            return JSON.parse(fs.readFileSync(NUMBER_EXPIRY_PATH, 'utf8'));
-        }
-    } catch (e) {}
-    return {};
-}
-
-function saveNumberExpiry(data) {
-    try {
-        fs.writeFileSync(NUMBER_EXPIRY_PATH, JSON.stringify(data, null, 2));
-    } catch (e) {
-        console.error('Failed to save number expiry:', e);
-    }
-}
-
-function recordNumberExpiry(number) {
-    const expiry = loadNumberExpiry();
-    expiry[number] = Date.now() + NUMBER_EXPIRY_MS;
-    saveNumberExpiry(expiry);
-    console.log(`⏱️ Number ${number} will expire in ${NUMBER_EXPIRY_HOURS}h`);
-}
-
-async function removeExpiredNumbers() {
-    try {
-        const expiry = loadNumberExpiry();
-        const now = Date.now();
-        let changed = false;
-
-        for (const [number, expiryTime] of Object.entries(expiry)) {
-            if (now >= expiryTime) {
-                console.log(`⌛ Number ${number} expired. Removing...`);
-
-                // Close socket if active
-                if (activeSockets.has(number)) {
-                    try {
-                        activeSockets.get(number).ws.close();
-                    } catch (e) {}
-                    activeSockets.delete(number);
-                    socketCreationTime.delete(number);
-                }
-
-                // Remove from numbers.json
-                if (fs.existsSync(NUMBER_LIST_PATH)) {
-                    let numbers = JSON.parse(fs.readFileSync(NUMBER_LIST_PATH, 'utf8'));
-                    numbers = numbers.filter(n => n !== number);
-                    fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
-                }
-
-                // Remove session folder
-                const sessionPath = path.join(SESSION_BASE_PATH, number);
-                if (fs.existsSync(sessionPath)) {
-                    fs.removeSync(sessionPath);
-                }
-
-                // Remove from expiry map
-                delete expiry[number];
-                changed = true;
-                console.log(`✅ Number ${number} removed after ${NUMBER_EXPIRY_HOURS}h`);
-            }
-        }
-
-        if (changed) saveNumberExpiry(expiry);
-    } catch (e) {
-        console.error('Error in removeExpiredNumbers:', e);
-    }
-}
-
-// Check for expired numbers every 5 minutes
-setInterval(removeExpiredNumbers, 5 * 60 * 1000);
-// Also check on startup
-removeExpiredNumbers();
 
 // Memory optimization: Improved admin loading with caching
 function loadAdmins() {
