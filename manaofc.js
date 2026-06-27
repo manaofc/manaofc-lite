@@ -1113,11 +1113,14 @@ ${msgData.footer}`;
           await updateCMDStore(text.key.id, CMD_ID_MAP);
         }
       };
-             const botNumber = conn.user.id.split(":")[0];
-             const botNumber2 = await const sanitizedNumber(socket.user.id);
-	         const pushname = mek.pushName || "NO NUMBER";
-	         const isMe = userConfig.OWNER_NUMBER.includes(senderNumber);
-	         const isOwner = userConfig.OWNER_NUMBER?.includes(senderNumber) || isMe;
+             const botNumber = socket.user.id.split(":")[0].split("@")[0];
+             const senderNumber = (mek.key.fromMe
+                 ? socket.user.id
+                 : (mek.key.participant || mek.key.remoteJid)
+             ).split("@")[0].split(":")[0];
+                 const pushname = mek.pushName || "NO NUMBER";
+                 const isMe = mek.key.fromMe === true;
+                 const isOwner = (userConfig.OWNER_NUMBER && userConfig.OWNER_NUMBER.includes(senderNumber)) || isMe;
              const isGroup = from.endsWith("@g.us");
           
 
@@ -1129,7 +1132,7 @@ ${msgData.footer}`;
             } else if (botMode === 'private') {
                 modeAllowed = isOwner;
             } else if (botMode === 'inbox') {
-                modeAllowed = isGroup;
+                modeAllowed = !isGroup;
             } else if (botMode === 'group') {
                 modeAllowed = isGroup;
             }
