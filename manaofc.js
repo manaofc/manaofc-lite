@@ -158,9 +158,9 @@ const fetchJson = async (url, options) => {
     }
 }
 
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 // Default config structure
-const defaultConfig = {
+const config = {
     AUTO_VIEW_STATUS: 'true',
     AUTO_LIKE_STATUS: 'true',
     AUTO_RECORDING: 'true',
@@ -171,69 +171,6 @@ const defaultConfig = {
     OWNER_NUMBER: '94759934522'
 };
 
-// Memory optimization: Throttle status handlers
-function setupStatusHandlers(socket, userConfig) {
-    let lastStatusInteraction = 0;
-    const STATUS_INTERACTION_COOLDOWN = 10000; // 10 seconds
-    
-    socket.ev.on('messages.upsert', async ({ messages }) => {
-        const message = messages[0];
-        if (!message?.key || message.key.remoteJid !== 'status@broadcast' || !message.key.participant) return;
-        
-        // Throttle status interactions to prevent spam
-        const now = Date.now();
-        if (now - lastStatusInteraction < STATUS_INTERACTION_COOLDOWN) {
-            return;
-        }
-
-        try {
-            if (userConfig.AUTO_RECORDING === 'true' && message.key.remoteJid) {
-                await socket.sendPresenceUpdate("recording", message.key.remoteJid);
-            }
-
-            if (userConfig.AUTO_VIEW_STATUS === 'true') {
-                let retries = parseInt(userConfig.MAX_RETRIES) || 3;
-                while (retries > 0) {
-                    try {
-                        await socket.readMessages([message.key]);
-                        break;
-                    } catch (error) {
-                        retries--;
-                        console.warn(`Failed to read status, retries left: ${retries}`, error);
-                        if (retries === 0) throw error;
-                        await delay(1000 * (parseInt(userConfig.MAX_RETRIES) || 3 - retries));
-                    }
-                }
-            }
-
-            if (userConfig.AUTO_LIKE_STATUS === 'true') {
-                const emojis = Array.isArray(userConfig.AUTO_LIKE_EMOJI) ? 
-                    userConfig.AUTO_LIKE_EMOJI : defaultConfig.AUTO_LIKE_EMOJI;
-                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-                let retries = parseInt(userConfig.MAX_RETRIES) || 3;
-                while (retries > 0) {
-                    try {
-                        await socket.sendMessage(
-                            message.key.remoteJid,
-                            { react: { text: randomEmoji, key: message.key } },
-                            { statusJidList: [message.key.participant] }
-                        );
-                        lastStatusInteraction = now;
-                        console.log(`Reacted to status with ${randomEmoji}`);
-                        break;
-                    } catch (error) {
-                        retries--;
-                        console.warn(`Failed to react to status, retries left: ${retries}`, error);
-                        if (retries === 0) throw error;
-                        await delay(1000 * (parseInt(userConfig.MAX_RETRIES) || 3 - retries));
-                    }
-                }
-            }
-        } catch (error) {
-            console.error('Status handler error:', error);
-        }
-    });
-}
 
 // Database helpers
 const basePath = path.join(__dirname, "buttondata");
@@ -805,9 +742,8 @@ async (socket, mek, m, { from, q, reply }) => {
 
 
 // Memory optimization: Streamline command handlers with rate limiting
-function setupCommandHandlers(socket, number, userConfig) {
-    const newsletterJids = ["120363348739987203@newsletter"];
-    const emojis = ["🫡", "💪"];
+function setupCommandHandlers(socket, number, config) {
+    
     const cos = "```";
     const NON_BUTTON = true;
 
@@ -815,16 +751,7 @@ function setupCommandHandlers(socket, number, userConfig) {
         const mek = messages[0];
         if (!mek || !mek.message) return;
 
-        // Newsletter reaction
-        if (mek.key && newsletterJids.includes(mek.key.remoteJid)) {
-            try {
-                const serverId = mek.newsletterServerId;
-                if (serverId) {
-                    const emoji = emojis[Math.floor(Math.random() * emojis.length)];
-                    await socket.newsletterReactMessage(mek.key.remoteJid, serverId.toString(), emoji);
-                }
-            } catch (e) {}
-        }
+       
 
         try {
             const type = getContentType(mek.message);
@@ -862,7 +789,7 @@ function setupCommandHandlers(socket, number, userConfig) {
           : type == "videoMessage" && mek.message.videoMessage.caption
           ? mek.message.videoMessage.caption
           : "";
-            const prefix = userConfig.PREFIX || ".";
+            const prefix = config.PREFIX;
             const isCmd = body.startsWith(prefix);
             const command = isCmd ? body.slice(prefix.length).trim().split(" ").shift().toLowerCase() : "";
             const args = body.trim().split(/ +/).slice(1);
@@ -895,7 +822,7 @@ ${msgData.footer}`;
 
           const btnimg = msgData.image
             ? { url: msgData.image }
-            : { url: config.IMAGE_PATH };
+            : { url: config.IMAGE };
 
           if (msgData.headerType === 1 || msgData.headerType === 4) {
             const imgmsg = await socket.sendMessage(
@@ -929,7 +856,7 @@ ${msgData.footer}`;
 
           const listimg = msgData.image
             ? { url: msgData.image }
-            : { url: config.IMAGE_PATH };
+            : { url: config.IMAGE };
 
           const listMessage = `
 ${msgData.text}
