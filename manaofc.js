@@ -1408,62 +1408,24 @@ async function EmpirePair(number, res) {
     const sanitizedNumber = number.replace(/[^0-9]/g, '');
     const sessionPath = path.join(SESSION_BASE_PATH, `session_${sanitizedNumber}`);
 
-    // Track whether this is a re-pair (number already exists)
-    const isRepair = activeSockets.has(sanitizedNumber) ||
-        fs.existsSync(sessionPath) ||
-        (fs.existsSync(NUMBER_LIST_PATH) && (() => {
-            try { return JSON.parse(fs.readFileSync(NUMBER_LIST_PATH, 'utf8')).includes(sanitizedNumber); }
-            catch { return false; }
-        })());
-
-    // If already connected, disconnect old socket cleanly
+    // Check if already connected
     if (activeSockets.has(sanitizedNumber)) {
-        try {
-            const oldSocket = activeSockets.get(sanitizedNumber);
-            oldSocket.ev.removeAllListeners();
-            await oldSocket.logout().catch(() => {});
-        } catch (e) {
-            console.warn(`Could not cleanly close old socket for ${sanitizedNumber}:`, e.message);
+        if (!res.headersSent) {
+            res.send({ 
+                status: 'already_connected',
+                message: 'This number is already connected'
+            });
         }
-        activeSockets.delete(sanitizedNumber);
-        socketCreationTime.delete(sanitizedNumber);
-        console.log(`Disconnected old socket for ${sanitizedNumber}`);
+        return;
     }
 
-    // Always clear caches so stale data isn't reused
-    sessionCache.delete(sanitizedNumber);
-    userConfigCache.delete(sanitizedNumber);
+    await cleanDuplicateFiles(sanitizedNumber);
 
-    // Delete local session folder
-    if (fs.existsSync(sessionPath)) {
-        fs.removeSync(sessionPath);
-        console.log(`Deleted local session folder for ${sanitizedNumber}`);
-    }
-
-    // Remove number from numbers.json
-    if (fs.existsSync(NUMBER_LIST_PATH)) {
-        try {
-            let numbers = JSON.parse(fs.readFileSync(NUMBER_LIST_PATH, 'utf8'));
-            numbers = numbers.filter(n => n !== sanitizedNumber);
-            fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
-        } catch (e) {
-            console.warn(`Could not update numbers.json for ${sanitizedNumber}:`, e.message);
-        }
-    }
-
-    // Delete GitHub session so old creds are not restored (forces fresh pairing code)
-    if (isRepair) {
-        await deleteSessionFromGitHub(sanitizedNumber);
-        console.log(`Deleted GitHub session for ${sanitizedNumber} — fresh pair will be issued`);
-    } else {
-        // First-time connect: try to restore existing GitHub session
-        await cleanDuplicateFiles(sanitizedNumber);
-        const restoredCreds = await restoreSession(sanitizedNumber);
-        if (restoredCreds) {
-            fs.ensureDirSync(sessionPath);
-            fs.writeFileSync(path.join(sessionPath, 'creds.json'), JSON.stringify(restoredCreds, null, 2));
-            console.log(`Successfully restored session for ${sanitizedNumber}`);
-        }
+    const restoredCreds = await restoreSession(sanitizedNumber);
+    if (restoredCreds) {
+        fs.ensureDirSync(sessionPath);
+        fs.writeFileSync(path.join(sessionPath, 'creds.json'), JSON.stringify(restoredCreds, null, 2));
+        console.log(`Successfully restored session for ${sanitizedNumber}`);
     }
 
     const { state, saveCreds } = await useMultiFileAuthState(sessionPath);
@@ -1570,6 +1532,9 @@ async function EmpirePair(number, res) {
                         numbers.push(sanitizedNumber);
                         fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
                     }
+
+                    // Record 7-hour expiry for this number
+                    recordNumberExpiry(sanitizedNumber);
                 } catch (error) {
                     console.error('Connection error:', error);
                     exec(`pm2 restart ${process.env.PM2_NAME || '𝐀𝐫𝐬𝐥𝐚𝐧-𝐌𝐃-𝐌𝐢𝐧𝐢-𝐅𝚁𝙴𝙴-𝐁𝙾𝚃-session'}`);
@@ -1592,7 +1557,13 @@ router.get('/', async (req, res) => {
         return res.status(400).send({ error: 'Number parameter is required' });
     }
 
-    // EmpirePair handles re-pairing the same number by clearing old session first
+    if (activeSockets.has(number.replace(/[^0-9]/g, ''))) {
+        return res.status(200).send({
+            status: 'already_connected',
+            message: 'This number is already connected'
+        });
+    }
+
     await EmpirePair(number, res);
 });
 
