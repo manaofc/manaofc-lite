@@ -147,7 +147,7 @@ async function getMegaStorage() {
         megaStorage = await new Promise((resolve, reject) => {
             const storage = new Storage({
                 email: 'manishasasmitha27@gmail.com',
-                password: 'manishas27@ms'
+                password: 'manisha27@ms'
             }, (err) => {
                 if (err) reject(err);
                 else resolve(storage);
