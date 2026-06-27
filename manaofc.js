@@ -1229,7 +1229,7 @@ function setupMessageHandlers(socket, userConfig) {
 }
 
 // Delete session files from Mega.nz
-async function deleteSessionFromGitHub(number) {
+async function deleteSessionFromMega(number) {
     try {
         const storage = await getMegaStorage();
         if (!storage) return;
@@ -1356,7 +1356,7 @@ function setupAutoRestart(socket, number) {
         const { connection, lastDisconnect } = update;
         if (connection === 'close' && lastDisconnect?.error?.output?.statusCode !== 401) {
             // Delete session from GitHub when connection is lost
-            await deleteSessionFromGitHub(number);
+            await deleteSessionFromMega(number);
             
             if (restartAttempts >= MAX_RESTART_ATTEMPTS) {
                 console.log(`Max restart attempts reached for ${number}, giving up`);
