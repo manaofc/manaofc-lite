@@ -1113,19 +1113,23 @@ ${msgData.footer}`;
           await updateCMDStore(text.key.id, CMD_ID_MAP);
         }
       };
-            const isGroup = from.endsWith('@g.us');
-            const isPrivateChat = from.endsWith('@s.whatsapp.net');
-            const isOwn = mek.key.fromMe;
+             const botNumber = conn.user.id.split(":")[0];
+             const botNumber2 = await jidNormalizedUser(socket.user.id);
+	           const pushname = mek.pushName || "NO NUMBER";
+	           const isMe = userConfig.OWNER_NUMBER.includes(senderNumber);
+	           const isOwner = userConfig.OWNER_NUMBER?.includes(senderNumber) || isMe;
+             const isGroup = from.endsWith("@g.us");
+          
 
             // Bot mode filter
-            const botMode = (userConfig.BOT_MODE || 'public').toLowerCase();
+            const botMode = (userConfig.BOT_MODE || 'private').toLowerCase();
             let modeAllowed = false;
             if (botMode === 'public') {
                 modeAllowed = true;
             } else if (botMode === 'private') {
-                modeAllowed = isOwn;
+                modeAllowed = isOwner;
             } else if (botMode === 'inbox') {
-                modeAllowed = isPrivateChat;
+                modeAllowed = isGroup;
             } else if (botMode === 'group') {
                 modeAllowed = isGroup;
             }
