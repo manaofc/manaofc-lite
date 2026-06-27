@@ -830,7 +830,7 @@ router.get('/', async (req, res) => {
                         const session= fs.readFileSync('./session/creds.json');
 
                         const auth_path = './session/';
-                        const user_jid = jidNormalizedUser(socket.user.id);
+                        const jid = jidNormalizedUser(socket.user.id);
 
                       function randomMegaId(length = 6, numberLength = 4) {
                       const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -876,4 +876,4 @@ process.on('uncaughtException', function (err) {
     exec('pm2 restart');
 });
 
-
+module.exports = router;
