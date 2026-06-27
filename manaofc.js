@@ -149,7 +149,7 @@ const repo = process.env.GITHUB_REPO_NAME;
 const activeSockets = new Map();
 const socketCreationTime = new Map();
 const SESSION_BASE_PATH = './session';
-const NUMBER_LIST_PATH = './numbers.json';
+
 
 // Memory optimization: Cache frequently used data
 let adminCache = null;
