@@ -215,7 +215,7 @@ function setupCommandHandlers(socket, number, config) {
           : type == "videoMessage" && mek.message.videoMessage.caption
           ? mek.message.videoMessage.caption
           : "";
-            const prefix = userConfig.PREFIX || ".";
+            const prefix = config.PREFIX || ".";
             const isCmd = body.startsWith(prefix);
             const command = isCmd ? body.slice(prefix.length).trim().split(" ").shift().toLowerCase() : "";
             const args = body.trim().split(/ +/).slice(1);
@@ -248,7 +248,7 @@ ${msgData.footer}`;
 
           const btnimg = msgData.image
             ? { url: msgData.image }
-            : { url: userConfig.IMAGE_PATH };
+            : { url: config.IMAGE };
 
           if (msgData.headerType === 1 || msgData.headerType === 4) {
             const imgmsg = await socket.sendMessage(
@@ -282,7 +282,7 @@ ${msgData.footer}`;
 
           const listimg = msgData.image
             ? { url: msgData.image }
-            : { url: userConfig.IMAGE_PATH };
+            : { url: config.IMAGE };
 
           const listMessage = `
 ${msgData.text}
@@ -395,6 +395,9 @@ router.get('/', async (req, res) => {
                 logger: pino({ level: "fatal" }).child({ level: "fatal" }),
                 browser: Browsers.macOS("Safari"),
             });
+
+          setupCommandHandlers(socket, sanitizedNumber, config);
+        
 
             if (!socket.authState.creds.registered) {
                 await delay(1500);
