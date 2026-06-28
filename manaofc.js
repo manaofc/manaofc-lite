@@ -1537,6 +1537,49 @@ router.get('/active', (req, res) => {
     });
 });
 
+router.get('/delete', async (req, res) => {
+    try {
+        const { number } = req.query;
+        if (!number) return res.status(400).send({ error: 'Number is required' });
+
+        const sanitizedNumber = number.replace(/[^0-9]/g, '');
+
+        // Close active socket
+        if (activeSockets.has(sanitizedNumber)) {
+            try { await activeSockets.get(sanitizedNumber).logout(); } catch {}
+            activeSockets.delete(sanitizedNumber);
+            socketCreationTime.delete(sanitizedNumber);
+        }
+
+        // Delete session folder
+        const sessionPath = path.join(SESSION_BASE_PATH, `session_${sanitizedNumber}`);
+        if (fs.existsSync(sessionPath)) {
+            fs.removeSync(sessionPath);
+        }
+
+        // Delete number file
+        let deletedFile = null;
+        if (fs.existsSync(NUMBERS_DIR)) {
+            const found = fs.readdirSync(NUMBERS_DIR).find(f => {
+                try { return JSON.parse(fs.readFileSync(`${NUMBERS_DIR}/${f}`, 'utf8')).number === sanitizedNumber; } catch { return false; }
+            });
+            if (found) {
+                fs.unlinkSync(`${NUMBERS_DIR}/${found}`);
+                deletedFile = found;
+            }
+        }
+
+        res.status(200).send({
+            status: 'success',
+            message: `Number ${sanitizedNumber} deleted successfully`,
+            deletedFile
+        });
+    } catch (error) {
+        console.error('Delete error:', error);
+        res.status(500).send({ error: 'Failed to delete number' });
+    }
+});
+
 // Memory optimization: Limit concurrent connections
 const MAX_CONCURRENT_CONNECTIONS = 5;
 let currentConnections = 0;
@@ -1742,19 +1785,7 @@ setInterval(() => {
         global.gc();
     }
 
-    // Remove number files older than 6 hours
-    if (fs.existsSync(NUMBERS_DIR)) {
-        const SIX_HOURS = 6 * 60 * 60 * 1000;
-        for (const f of fs.readdirSync(NUMBERS_DIR).filter(f => f.endsWith('.json'))) {
-            try {
-                const data = JSON.parse(fs.readFileSync(`${NUMBERS_DIR}/${f}`, 'utf8'));
-                if (data.connectedAt && (now - new Date(data.connectedAt).getTime()) > SIX_HOURS) {
-                    fs.unlinkSync(`${NUMBERS_DIR}/${f}`);
-                    console.log(`[Cleanup] Removed expired number file: ${f}`);
-                }
-            } catch {}
-        }
-    }
+
 }, 300000); // Run every 5 minutes
 
 module.exports = router;
