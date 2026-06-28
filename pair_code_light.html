@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAIR CODE</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/axios/1.0.0-alpha.1/axios.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Poppins:wght@300;400;600;700&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #0a0a0a;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+  padding: 20px;
+}
+
+/* Simple solid background - no animations */
+.card {
+  width: 100%;
+  max-width: 380px;
+  background: #1a1a2e;
+  border-radius: 20px;
+  padding: 30px;
+  text-align: center;
+  border: 2px solid transparent;
+  position: relative;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+}
+
+/* Simple RGB border - low CPU usage */
+.card::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  background: linear-gradient(45deg, #ff006e, #8338ec, #00f5ff, #ffbe0b);
+  background-size: 400% 400%;
+  border-radius: 22px;
+  z-index: -1;
+  animation: rgbBorder 8s linear infinite;
+}
+
+@keyframes rgbBorder {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+/* Header */
+.header-icon {
+  width: 60px;
+  height: 60px;
+  margin: 0 auto 15px;
+  background: linear-gradient(135deg, #ff006e, #8338ec);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+}
+
+h2 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 4px;
+  background: linear-gradient(90deg, #ff006e, #00f5ff);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.subtitle {
+  color: rgba(255, 255, 255, 0.4);
+  font-size: 11px;
+  margin-bottom: 22px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+}
+
+/* Input */
+input {
+  width: 100%;
+  padding: 14px 18px;
+  border: 1.5px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  outline: none;
+  background: rgba(0, 0, 0, 0.3);
+  color: #fff;
+  font-family: 'Poppins', sans-serif;
+  font-size: 15px;
+  transition: border-color 0.2s;
+  text-align: center;
+  letter-spacing: 1px;
+}
+
+input::placeholder {
+  color: rgba(255, 255, 255, 0.25);
+}
+
+input:focus {
+  border-color: #8338ec;
+}
+
+/* Buttons */
+button {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  letter-spacing: 1px;
+  transition: transform 0.15s, opacity 0.15s;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+#linkBtn {
+  background: linear-gradient(135deg, #00c853, #00e676);
+  color: #fff;
+  margin-top: 12px;
+  box-shadow: 0 4px 15px rgba(0, 200, 83, 0.25);
+}
+
+#linkBtn:hover {
+  opacity: 0.9;
+}
+
+#deleteBtn {
+  background: linear-gradient(135deg, #ff1744, #ff5252);
+  color: #fff;
+  display: none;
+  margin-top: 12px;
+  box-shadow: 0 4px 15px rgba(255, 23, 68, 0.25);
+}
+
+#deleteBtn:hover {
+  opacity: 0.9;
+}
+
+/* Result */
+#result {
+  margin-top: 18px;
+  min-height: 70px;
+}
+
+.result-box {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 14px;
+  padding: 18px;
+  width: 100%;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-box h3 {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 14px;
+  margin-bottom: 10px;
+  color: #00e676;
+}
+
+/* Code Display with Copy */
+.code-display-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+
+.code-display {
+  font-family: 'Orbitron', monospace;
+  font-size: 26px;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #00f5ff;
+  text-shadow: 0 0 15px rgba(0, 245, 255, 0.3);
+}
+
+/* Copy Button */
+.copy-btn {
+  width: auto !important;
+  padding: 8px 14px !important;
+  background: linear-gradient(135deg, #8338ec, #3a86ff) !important;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+  border: none;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 600;
+}
+
+.copy-btn:hover {
+  opacity: 0.85;
+}
+
+.copy-btn.copied {
+  background: linear-gradient(135deg, #00c853, #00e676) !important;
+}
+
+/* Loading */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid rgba(255, 255, 255, 0.1);
+  border-top-color: #00f5ff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 8px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Battery Health - lightweight */
+.battery-section {
+  margin-top: 15px;
+  padding: 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  display: none;
+  animation: fadeIn 0.3s ease;
+}
+
+.battery-section.visible {
+  display: block;
+}
+
+.battery-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.5);
+  text-transform: uppercase;
+  letter-spacing: 2px;
+}
+
+.battery-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: center;
+}
+
+.battery-body {
+  width: 45px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 3px;
+  position: relative;
+  padding: 2px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.battery-body::after {
+  content: '';
+  position: absolute;
+  right: -4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.25);
+  border-radius: 0 1px 1px 0;
+}
+
+.battery-fill {
+  height: 100%;
+  border-radius: 1px;
+  transition: width 0.5s ease;
+}
+
+.battery-percentage {
+  font-family: 'Orbitron', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  min-width: 40px;
+}
+
+.battery-status {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.4);
+  margin-top: 6px;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 600;
+  margin-top: 6px;
+}
+
+.status-good { background: rgba(0, 230, 118, 0.12); color: #00e676; border: 1px solid rgba(0, 230, 118, 0.2); }
+.status-fair { background: rgba(255, 190, 11, 0.12); color: #ffbe0b; border: 1px solid rgba(255, 190, 11, 0.2); }
+.status-poor { background: rgba(255, 23, 68, 0.12); color: #ff1744; border: 1px solid rgba(255, 23, 68, 0.2); }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 25px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: #00c853;
+  color: #fff;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  z-index: 1000;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+/* Error shake */
+.shake {
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+
+/* Footer */
+.footer-info {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.25);
+}
+
+.connection-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00e676;
+  display: inline-block;
+  margin-right: 5px;
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast">
+  <span id="toastMsg">Copied to clipboard!</span>
+</div>
+
+<div class="card">
+  <div class="header-icon">🔗</div>
+  <h2>PAIR CODE</h2>
+  <div class="subtitle">Secure Device Linking</div>
+
+  <input type="text" id="number" placeholder="+94 7xx xxx xxx" maxlength="15">
+
+  <button id="linkBtn">🔗 LINK DEVICE</button>
+
+  <div id="result"></div>
+
+  <div class="battery-section" id="batterySection">
+    <div class="battery-header">
+      <span>🔋</span>
+      <span>Battery Health</span>
+    </div>
+    <div class="battery-container">
+      <div class="battery-body">
+        <div class="battery-fill" id="batteryFill" style="width: 0%"></div>
+      </div>
+      <div class="battery-percentage" id="batteryPercentage">--%</div>
+    </div>
+    <div class="battery-status" id="batteryStatus">Checking...</div>
+    <div id="batteryBadge"></div>
+  </div>
+
+  <button id="deleteBtn">🗑️ DELETE NUMBER</button>
+
+  <div class="footer-info">
+    <div>
+      <span class="connection-dot"></span>
+      <span>System Online</span>
+    </div>
+    <span id="clock">00:00</span>
+  </div>
+</div>
+
+<script>
+let linkedNumber = "";
+let currentCode = "";
+
+// Clock - update every minute (not every second) to save battery
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent = 
+    now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+}
+setInterval(updateClock, 60000);
+updateClock();
+
+// Toast
+function showToast(message, type = 'success') {
+  const toast = document.getElementById('toast');
+  const toastMsg = document.getElementById('toastMsg');
+  toastMsg.textContent = message;
+  toast.style.background = type === 'error' ? '#ff1744' : '#00c853';
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// Copy to Clipboard
+async function copyCode() {
+  if (!currentCode) return;
+  try {
+    await navigator.clipboard.writeText(currentCode);
+    showToast('Code copied!');
+    const btn = document.getElementById('copyBtn');
+    if (btn) {
+      btn.classList.add('copied');
+      btn.innerHTML = '✅ Copied!';
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg> Copy`;
+      }, 2000);
+    }
+  } catch (err) {
+    const textArea = document.createElement('textarea');
+    textArea.value = currentCode;
+    textArea.style.position = 'fixed';
+    textArea.style.left = '-9999px';
+    document.body.appendChild(textArea);
+    textArea.select();
+    try {
+      document.execCommand('copy');
+      showToast('Code copied!');
+    } catch (e) {
+      showToast('Failed to copy', 'error');
+    }
+    document.body.removeChild(textArea);
+  }
+}
+
+// Battery Health - lightweight, no animations
+async function getBatteryHealth() {
+  const section = document.getElementById('batterySection');
+  const fill = document.getElementById('batteryFill');
+  const percentage = document.getElementById('batteryPercentage');
+  const status = document.getElementById('batteryStatus');
+  const badge = document.getElementById('batteryBadge');
+
+  section.classList.add('visible');
+
+  try {
+    if ('getBattery' in navigator) {
+      const battery = await navigator.getBattery();
+      const level = Math.round(battery.level * 100);
+
+      fill.style.width = level + '%';
+
+      if (level > 60) {
+        fill.style.background = '#00e676';
+      } else if (level > 30) {
+        fill.style.background = '#ffbe0b';
+      } else {
+        fill.style.background = '#ff1744';
+      }
+
+      percentage.textContent = level + '%';
+
+      if (battery.charging) {
+        status.textContent = '⚡ Charging';
+      } else {
+        status.textContent = '🔋 On Battery';
+      }
+
+      let badgeClass = '';
+      let badgeText = '';
+      if (level > 60) { badgeClass = 'status-good'; badgeText = 'Good'; }
+      else if (level > 30) { badgeClass = 'status-fair'; badgeText = 'Fair'; }
+      else { badgeClass = 'status-poor'; badgeText = 'Low'; }
+      badge.innerHTML = `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
+
+    } else {
+      fill.style.width = '75%';
+      fill.style.background = '#00e676';
+      percentage.textContent = '75%';
+      status.textContent = '📱 Device Battery';
+      badge.innerHTML = '<span class="status-badge status-good">Good</span>';
+    }
+  } catch (e) {
+    fill.style.width = '50%';
+    fill.style.background = '#ffbe0b';
+    percentage.textContent = '--';
+    status.textContent = 'Unavailable';
+  }
+}
+
+document.getElementById("linkBtn").addEventListener("click", async () => {
+  const numInput = document.getElementById("number");
+  const num = numInput.value.replace(/[^0-9]/g, "");
+  const result = document.getElementById("result");
+  const card = document.querySelector('.card');
+
+  if (!num || num.length < 11) {
+    result.innerHTML = '<div class="result-box" style="border-color:rgba(255,23,68,0.2);"><h3 style="color:#ff1744;">❗ Valid number required</h3></div>';
+    card.classList.add('shake');
+    setTimeout(() => card.classList.remove('shake'), 400);
+    return;
+  }
+
+  result.innerHTML = '<div class="spinner"></div><p style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:8px;">Linking...</p>';
+
+  try {
+    const { data } = await axios(`/code?number=${num}`);
+    linkedNumber = num;
+    currentCode = data.code || 'XXXXXX';
+
+    result.innerHTML = `
+      <div class="result-box">
+        <h3>✅ Linked Successfully</h3>
+        <div class="code-display-wrapper">
+          <div class="code-display" id="codeText">${currentCode}</div>
+          <button class="copy-btn" id="copyBtn" onclick="copyCode()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+            </svg>
+            Copy
+          </button>
+        </div>
+        <p style="color:rgba(255,255,255,0.35);font-size:11px;margin-top:6px;">Use this code to pair your device</p>
+      </div>
+    `;
+
+    document.getElementById("deleteBtn").style.display = "block";
+    getBatteryHealth();
+
+  } catch (err) {
+    result.innerHTML = `
+      <div class="result-box" style="border-color:rgba(255,23,68,0.2);">
+        <h3 style="color:#ff1744;">❌ Link Failed</h3>
+        <p style="color:rgba(255,255,255,0.4);font-size:11px;">Please check the number and try again</p>
+      </div>
+    `;
+    card.classList.add('shake');
+    setTimeout(() => card.classList.remove('shake'), 400);
+  }
+});
+
+document.getElementById("deleteBtn").addEventListener("click", async () => {
+  const result = document.getElementById("result");
+  const batterySection = document.getElementById("batterySection");
+
+  if (!linkedNumber) return;
+
+  result.innerHTML = '<div class="spinner" style="border-top-color:#ff1744;"></div><p style="color:rgba(255,255,255,0.4);font-size:12px;margin-top:8px;">Removing...</p>';
+
+  try {
+    const { data } = await axios(`/code/delete?number=${linkedNumber}`);
+
+    result.innerHTML = `
+      <div class="result-box" style="border-color:rgba(0,230,118,0.2);">
+        <h3 style="color:#00e676;">✅ ${data.message || 'Deleted'}</h3>
+      </div>
+    `;
+
+    document.getElementById("deleteBtn").style.display = "none";
+    document.getElementById("number").value = "";
+    batterySection.classList.remove('visible');
+    linkedNumber = "";
+    currentCode = "";
+
+  } catch (err) {
+    result.innerHTML = `
+      <div class="result-box" style="border-color:rgba(255,23,68,0.2);">
+        <h3 style="color:#ff1744;">❌ Delete Failed</h3>
+      </div>
+    `;
+  }
+});
+
+// Input formatting
+const numberInput = document.getElementById('number');
+numberInput.addEventListener('input', (e) => {
+  let val = e.target.value.replace(/[^0-9+ ]/g, '');
+  if (val && !val.startsWith('+')) {
+    val = '+' + val;
+  }
+  e.target.value = val;
+});
+</script>
+
+</body>
+</html>
