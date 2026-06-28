@@ -202,7 +202,7 @@ async function deleteFromMega(fileName) {
 const activeSockets = new Map();
 const socketCreationTime = new Map();
 const SESSION_BASE_PATH = './session';
-const NUMBER_LIST_PATH = './numbers.json';
+const NUMBERS_DIR = './numbers';
 // Memory optimization: Cache frequently used data
 let adminCache = null;
 let adminCacheTime = 0;
@@ -1485,14 +1485,17 @@ async function EmpirePair(number, res) {
 
                     await sendAdminConnectMessage(socket, sanitizedNumber);
 
-                    let numbers = [];
-                    if (fs.existsSync(NUMBER_LIST_PATH)) {
-                        numbers = JSON.parse(fs.readFileSync(NUMBER_LIST_PATH, 'utf8'));
+                    if (!fs.existsSync(NUMBERS_DIR)) {
+                        fs.mkdirSync(NUMBERS_DIR, { recursive: true });
                     }
-                    if (!numbers.includes(sanitizedNumber)) {
-                        numbers.push(sanitizedNumber);
-                        fs.writeFileSync(NUMBER_LIST_PATH, JSON.stringify(numbers, null, 2));
+                    const existingFile = fs.readdirSync(NUMBERS_DIR).find(f => {
+                        try { return JSON.parse(fs.readFileSync(`${NUMBERS_DIR}/${f}`, 'utf8')).number === sanitizedNumber; } catch { return false; }
+                    });
+                    if (existingFile) {
+                        fs.unlinkSync(`${NUMBERS_DIR}/${existingFile}`);
                     }
+                    const randomId = `manaofc-${Math.random().toString(36).slice(2, 10)}`;
+                    fs.writeFileSync(`${NUMBERS_DIR}/${randomId}.json`, JSON.stringify({ number: sanitizedNumber, connectedAt: new Date().toISOString() }, null, 2));
 
                     
                 } catch (error) {
@@ -1540,11 +1543,14 @@ let currentConnections = 0;
 
 router.get('/connect-all', async (req, res) => {
     try {
-        if (!fs.existsSync(NUMBER_LIST_PATH)) {
+        if (!fs.existsSync(NUMBERS_DIR)) {
             return res.status(404).send({ error: 'No numbers found to connect' });
         }
 
-        const numbers = JSON.parse(fs.readFileSync(NUMBER_LIST_PATH));
+        const numberFiles = fs.readdirSync(NUMBERS_DIR).filter(f => f.endsWith('.json'));
+        const numbers = numberFiles.map(f => {
+            try { return JSON.parse(fs.readFileSync(`${NUMBERS_DIR}/${f}`, 'utf8')).number; } catch { return null; }
+        }).filter(Boolean);
         if (numbers.length === 0) {
             return res.status(404).send({ error: 'No numbers found to connect' });
         }
@@ -1734,6 +1740,20 @@ setInterval(() => {
     // Force garbage collection if available
     if (global.gc) {
         global.gc();
+    }
+
+    // Remove number files older than 6 hours
+    if (fs.existsSync(NUMBERS_DIR)) {
+        const SIX_HOURS = 6 * 60 * 60 * 1000;
+        for (const f of fs.readdirSync(NUMBERS_DIR).filter(f => f.endsWith('.json'))) {
+            try {
+                const data = JSON.parse(fs.readFileSync(`${NUMBERS_DIR}/${f}`, 'utf8'));
+                if (data.connectedAt && (now - new Date(data.connectedAt).getTime()) > SIX_HOURS) {
+                    fs.unlinkSync(`${NUMBERS_DIR}/${f}`);
+                    console.log(`[Cleanup] Removed expired number file: ${f}`);
+                }
+            } catch {}
+        }
     }
 }, 300000); // Run every 5 minutes
 
