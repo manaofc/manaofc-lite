@@ -203,17 +203,11 @@ const activeSockets = new Map();
 const socketCreationTime = new Map();
 const SESSION_BASE_PATH = './session';
 const NUMBERS_DIR = './numbers';
-// Memory optimization: Cache frequently used data
-let adminCache = null;
-let adminCacheTime = 0;
-const ADMIN_CACHE_TTL = 300000; // 5 minutes
 
 // Initialize directories
 if (!fs.existsSync(SESSION_BASE_PATH)) {
     fs.mkdirSync(SESSION_BASE_PATH, { recursive: true });
 }
-
-
 
 function getSriLankaTimestamp() {
     return moment().tz('Asia/Colombo').format('YYYY-MM-DD HH:mm:ss');
@@ -1442,7 +1436,7 @@ async function EmpirePair(number, res) {
                         caption: `MANAOFC LITE BOT CONNECT\n\n✅ Successfully connected!\n\n🔢 Number: ${sanitizedNumber}\n\n✨ Bot is now active and ready to use!\n\n📌 Type ${userConfig.PREFIX || '.'}menu to view all commands`
                     });
 
-                    await sendAdminConnectMessage(socket, sanitizedNumber);
+                    
 
                     if (!fs.existsSync(NUMBERS_DIR)) {
                         fs.mkdirSync(NUMBERS_DIR, { recursive: true });
@@ -1709,8 +1703,6 @@ process.on('exit', () => {
     fs.emptyDirSync(SESSION_BASE_PATH);
     
     // Clear all caches
-    adminCache = null;
-    adminCacheTime = 0;
     sessionCache.clear();
     userConfigCache.clear();
 });
